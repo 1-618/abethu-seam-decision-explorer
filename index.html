@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abethu — Seam decision explorer V3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#14213A; --amber:#E08A00; --amber-t:#9A5600;
+  --bg:#FAF6EC; --surface:#FFFDF7; --surface2:#F4EEE0; --surface3:#E9E1CF;
+  --border:#E3DAC6; --border2:#CABEA4;
+  --ink:#1B2233; --dim:#4B5468; --faint:#6F768A;
+  --site:#0B8A7E; --site-t:#08695F;
+  --lms:#6A52C9; --lms-t:#5340AA;
+  --cms:#BC3A7D; --cms-t:#9C2C66;
+  --infra:#5F6B7E; --infra-t:#4B586C;
+  --edge:#6A7890; --seamedge:#B96A00; --blocked:#C8352F; --ok:#1B8049;
+  --num:#1D63C4; --codec:#3B4A8C; --code-bg:#FFFFFF;
+  --tk-decl:#8A3FB5; --tk-ctrl:#B4326A; --tk-str:#2E7D32; --tk-num:#B55A00; --tk-cst:#0B6FA8; --tk-typ:#0A7F78; --tk-fn:#2456C8; --tk-prop:#7A4A1C;
+  --seam-tint:rgba(224,138,0,.085); --seam-hatch:rgba(224,138,0,.16);
+  --halo:#FFFDF7;
+  --sb:rgba(27,34,51,.07); --sb-h:rgba(27,34,51,.42);
+  --bg-fx:radial-gradient(1100px 520px at 78% -8%,rgba(224,138,0,.07),transparent 62%);
+  --sh1:0 1px 2px rgba(60,45,10,.07),0 3px 10px rgba(60,45,10,.05);
+  --sh2:0 8px 28px rgba(40,30,8,.18);
+}
+body.dark{
+  --bg:#05070C; --surface:#0B0F18; --surface2:#111827; --surface3:#1A2436;
+  --border:#1C2637; --border2:#2C3B55;
+  --ink:#EAF0FA; --dim:#A8B4C8; --faint:#73819A;
+  --amber:#FFA826; --amber-t:#FFB84D;
+  --site:#2CC4B4; --site-t:#58D9CB;
+  --lms:#9A86F5; --lms-t:#B3A3FA;
+  --cms:#E868AA; --cms-t:#F08CC0;
+  --infra:#8D9DB5; --infra-t:#A8B6CB;
+  --edge:#8DA0BC; --seamedge:#FFB84D; --blocked:#FF6B61; --ok:#45C97F;
+  --num:#7DB4FF; --codec:#B4C2FF; --code-bg:#05070C;
+  --tk-decl:#C59BFF; --tk-ctrl:#FF8AC0; --tk-str:#9BE08A; --tk-num:#FFB86B; --tk-cst:#6FD0FF; --tk-typ:#5FE0CF; --tk-fn:#8EB4FF; --tk-prop:#F0C98A;
+  --seam-tint:rgba(255,168,38,.08); --seam-hatch:rgba(255,168,38,.17);
+  --halo:#0B0F18;
+  --sb:rgba(234,240,250,.06); --sb-h:rgba(234,240,250,.4);
+  --bg-fx:radial-gradient(1100px 560px at 76% -10%,rgba(64,120,255,.17),transparent 62%),radial-gradient(800px 520px at 0% 100%,rgba(40,90,220,.09),transparent 60%);
+  --sh1:0 1px 2px rgba(0,0,0,.6); --sh2:0 14px 40px rgba(0,0,0,.7);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;scroll-padding-top:76px;}
+body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.55;transition:background .25s,color .25s;}
+.mono{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;}
+a{color:inherit;}
+:focus{outline:none;}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px;}
+::selection{background:color-mix(in srgb,var(--amber) 30%,transparent);}
+
+/* ── top nav ── */
+#top{position:fixed;top:0;left:0;right:0;height:60px;z-index:120;display:flex;align-items:center;gap:14px;
+  padding:0 18px;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border);transition:top .28s ease,background .25s;}
+#top.hidden{top:-62px;}
+#brand{display:flex;align-items:center;gap:10px;white-space:nowrap;}
+#brand .mark{width:26px;height:26px;border-radius:7px;background:var(--navy);position:relative;flex-shrink:0;}
+body.dark #brand .mark{background:var(--amber);}
+#brand .mark::after{content:'';position:absolute;left:11px;top:5px;bottom:5px;width:4px;border-radius:2px;background:var(--amber);}
+body.dark #brand .mark::after{background:var(--navy);}
+#brand b{font-size:15px;letter-spacing:-.2px;}
+#brand span{color:var(--dim);font-weight:400;}
+#top .links{display:flex;gap:2px;margin-left:6px;overflow:hidden;}
+#top .links a{font-size:12.5px;color:var(--dim);text-decoration:none;padding:6px 10px;border-radius:8px;white-space:nowrap;}
+#top .links a:hover{background:var(--surface2);color:var(--ink);}
+#top .right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.iconbtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface);
+  color:var(--dim);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;}
+.iconbtn:hover{background:var(--surface2);}
+
+/* ── sidebar ── */
+#side{position:fixed;top:0;left:0;bottom:0;width:238px;z-index:110;background:var(--surface);
+  border-right:1px solid var(--border);padding:74px 12px 30px;overflow-y:auto;transition:transform .28s ease;}
+body.side-closed #side{transform:translateX(-100%);}
+#side .grp{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:var(--faint);margin:16px 8px 6px;font-weight:600;}
+#side a{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);text-decoration:none;
+  padding:7px 10px;border-radius:9px;margin-bottom:1px;}
+#side a:hover{background:var(--surface2);color:var(--ink);}
+#side a.on{background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--ink);font-weight:600;}
+#side a .dot{width:7px;height:7px;border-radius:3px;background:var(--faint);flex-shrink:0;}
+#side a.on .dot{background:var(--amber);}
+#scrim{position:fixed;inset:0;background:rgba(6,12,22,.44);z-index:105;opacity:0;pointer-events:none;transition:opacity .25s;}
+
+/* ── main / typography ── */
+#main{padding:88px 26px 120px;margin-left:238px;transition:margin .28s ease;}
+body.side-closed #main{margin-left:0;}
+.wrap{max-width:1120px;margin:0 auto;}
+section{margin-bottom:84px;scroll-margin-top:80px;}
+.eyebrow{display:flex;align-items:center;gap:10px;font-size:11px;text-transform:uppercase;
+  letter-spacing:2px;color:var(--amber-t);font-weight:700;margin-bottom:10px;}
+.eyebrow::after{content:'';flex:0 0 44px;height:0;border-top:2px dashed color-mix(in srgb,var(--amber) 55%,transparent);}
+h1{font-size:clamp(27px,4vw,40px);line-height:1.12;letter-spacing:-.8px;font-weight:800;margin-bottom:16px;}
+h2{font-size:23px;letter-spacing:-.4px;font-weight:750;margin-bottom:10px;}
+h3{font-size:15.5px;font-weight:700;margin-bottom:8px;}
+p.lead{font-size:16.5px;color:var(--dim);max-width:72ch;}
+p.body{font-size:14px;color:var(--dim);max-width:78ch;margin-bottom:12px;}
+p.body b,p.lead b{color:var(--ink);font-weight:650;}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em;background:var(--surface2);
+  border:1px solid var(--border);padding:1px 6px;border-radius:5px;color:var(--ink);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px;box-shadow:var(--sh1);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.callout{border-left:4px solid var(--amber);background:color-mix(in srgb,var(--amber) 8%,var(--surface));
+  border-radius:12px;padding:14px 16px;font-size:13.5px;color:var(--ink);}
+.herofacts{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;}
+.hf{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--dim);
+  background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:7px 14px;box-shadow:var(--sh1);}
+.hf i{width:8px;height:8px;border-radius:3px;flex-shrink:0;}
+
+/* ── glossary terms + popover ── */
+button.term{all:unset;cursor:pointer;color:inherit;border-bottom:1.5px dotted color-mix(in srgb,var(--amber) 70%,var(--dim));
+  padding-bottom:0px;}
+button.term:hover{color:var(--ink);border-bottom-style:solid;}
+button.term:focus-visible{outline:2px solid var(--amber);outline-offset:1px;border-radius:3px;}
+#pop{position:fixed;z-index:260;width:min(340px,calc(100vw - 24px));background:var(--surface);color:var(--ink);
+  border:1px solid var(--border2);border-radius:14px;box-shadow:var(--sh2);padding:13px 15px;
+  opacity:0;pointer-events:none;transform:translateY(5px);transition:opacity .15s,transform .15s;}
+#pop.show{opacity:1;pointer-events:auto;transform:translateY(0);}
+#pop h4{font-size:13px;font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:8px;}
+#pop h4 .tk{font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:var(--amber-t);font-weight:700;}
+#pop p{font-size:12.5px;color:var(--dim);line-height:1.55;}
+#pop p b{color:var(--ink);font-weight:650;}
+
+/* ── figure shell ── */
+.dwrap{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:16px 12px 12px;box-shadow:var(--sh1);}
+.dwrap svg{display:block;width:100%;height:auto;}
+svg text{font-family:'Inter',system-ui,Arial,sans-serif;fill:var(--ink);}
+.zlab{font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;fill:var(--faint);font-weight:700;}
+.seamlab{font-size:9px;letter-spacing:1.6px;text-transform:uppercase;fill:var(--seamedge);font-weight:700;}
+.blab{font-size:13px;font-weight:600;}
+.bsub{font-size:10.5px;fill:var(--dim);}
+.chip{font-size:9.5px;fill:var(--ink);font-weight:600;}
+.cap{font-size:12.5px;fill:var(--dim);font-style:italic;}
+.elab{font-size:10px;font-weight:600;fill:var(--dim);paint-order:stroke;stroke:var(--halo);stroke-width:4px;stroke-linejoin:round;}
+.elab.sx{fill:var(--seamedge);}
+.elab.bx{fill:var(--blocked);}
+.zone{fill:none;stroke:var(--border2);stroke-width:1;stroke-dasharray:5 5;}
+.nb{stroke-width:1.2;}
+.nb.c-site{fill:color-mix(in srgb,var(--site) 13%,var(--surface));stroke:color-mix(in srgb,var(--site) 60%,var(--border));}
+.nb.c-lms{fill:color-mix(in srgb,var(--lms) 13%,var(--surface));stroke:color-mix(in srgb,var(--lms) 60%,var(--border));}
+.nb.c-cms{fill:color-mix(in srgb,var(--cms) 12%,var(--surface));stroke:color-mix(in srgb,var(--cms) 56%,var(--border));}
+.nb.c-mut{fill:color-mix(in srgb,var(--infra) 11%,var(--surface));stroke:color-mix(in srgb,var(--infra) 48%,var(--border));}
+.ebox{cursor:pointer;}
+.ebox:hover .nb{filter:brightness(1.05);}
+.ebox.sel .nb{stroke:var(--amber);stroke-width:2;}
+.edge{fill:none;stroke:var(--edge);stroke-linejoin:round;cursor:pointer;}
+.edge.sx{stroke:var(--seamedge);}
+.edge.blk{stroke:var(--blocked);stroke-dasharray:5 5;animation:none;cursor:pointer;}
+.edge.march{stroke-dasharray:7 6;animation:march 1.25s linear infinite;}
+@keyframes march{to{stroke-dashoffset:-13;}}
+.ehit{fill:none;stroke:transparent;stroke-width:14;cursor:pointer;}
+.edge.sel{filter:drop-shadow(0 0 2px color-mix(in srgb,var(--amber) 70%,transparent));stroke-width:2.4 !important;}
+.dimmed{opacity:.22;transition:opacity .2s;}
+.gstep{transition:opacity .2s;}
+
+/* dock */
+.dock{margin-top:12px;border-top:1px dashed var(--border);padding:12px 8px 2px;min-height:76px;display:flex;gap:12px;align-items:flex-start;}
+.dock .dk{width:9px;height:9px;border-radius:3px;margin-top:5px;flex-shrink:0;background:var(--faint);}
+.dock h5{font-size:13px;font-weight:700;margin-bottom:3px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;}
+.dock h5 .role{font-size:10.5px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;}
+.dock p{font-size:12.5px;color:var(--dim);line-height:1.5;max-width:92ch;}
+.dock p b{color:var(--ink);font-weight:650;}
+.dock.idle p{color:var(--faint);font-style:italic;}
+
+/* stepper */
+.stepbar{display:flex;align-items:center;gap:10px;margin-top:10px;padding:0 6px;}
+.stepbar .sbtn{width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--surface);
+  color:var(--dim);cursor:pointer;font-size:14px;font-family:inherit;flex-shrink:0;}
+.stepbar .sbtn:hover:not(:disabled){background:var(--surface2);}
+.stepbar .sbtn:disabled{opacity:.35;cursor:default;}
+.stepbar .sct{font-size:11px;color:var(--faint);font-weight:700;letter-spacing:.5px;width:52px;text-align:center;flex-shrink:0;font-variant-numeric:tabular-nums;}
+.stepbar .scap{font-size:12.5px;color:var(--ink);min-height:38px;display:flex;align-items:center;line-height:1.45;}
+.stepbar .scap b{font-weight:700;}
+.stepbar .splay{margin-left:auto;flex-shrink:0;}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:10px 8px 2px;font-size:11.5px;color:var(--dim);align-items:center;}
+.legend .li{display:inline-flex;align-items:center;gap:7px;}
+.legend svg{width:34px;height:12px;flex-shrink:0;}
+
+/* ── decision sections ── */
+.dec-head{display:flex;align-items:center;gap:14px;margin-bottom:8px;flex-wrap:wrap;}
+.dec-letter{width:42px;height:42px;border-radius:13px;background:var(--navy);color:#fff;font-weight:800;
+  font-size:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+body.dark .dec-letter{background:var(--amber);color:var(--navy);}
+.recchip{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent);
+  border-radius:999px;padding:5px 12px;margin-left:auto;}
+.recchip::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--ok);}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 14px;}
+.tab{display:flex;align-items:center;gap:8px;padding:8px 15px;border-radius:999px;border:1.5px solid var(--border);
+  background:var(--surface);color:var(--dim);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.tab:hover{border-color:var(--border2);}
+.tab .vd{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tab.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+body.dark .tab.on{background:var(--amber);border-color:var(--amber);color:var(--navy);}
+.vd.rec{background:var(--ok);} .vd.dead{background:var(--blocked);} .vd.ok{background:var(--faint);}
+.tab.on .vd.ok{background:color-mix(in srgb,#fff 70%,transparent);}
+body.dark .tab.on .vd.ok{background:color-mix(in srgb,var(--navy) 60%,transparent);}
+
+.optgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start;}
+.opanel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 20px;box-shadow:var(--sh1);}
+.verdict{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.6px;
+  text-transform:uppercase;padding:4px 12px;border-radius:999px;margin-bottom:10px;}
+.verdict.rec{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok);}
+.verdict.dead{background:color-mix(in srgb,var(--blocked) 13%,transparent);color:var(--blocked);}
+.verdict.ok{background:var(--surface2);color:var(--dim);}
+.opanel .how{font-size:13.5px;color:var(--ink);margin-bottom:16px;line-height:1.55;}
+.metrics{display:flex;flex-direction:column;gap:8px;}
+.mrow{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dim);}
+.mrow .ml{width:82px;flex-shrink:0;font-weight:600;}
+.dots{display:flex;gap:3px;flex-shrink:0;}
+.dots i{width:13px;height:6px;border-radius:3px;background:var(--surface3);}
+.dots i.f{background:var(--amber);}
+.mword{font-size:11.5px;color:var(--faint);}
+.mtag{font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:2px 9px;color:var(--dim);}
+.pc h4{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;font-weight:700;margin-bottom:8px;}
+.pc .pros h4{color:var(--ok);} .pc .cons h4{color:var(--blocked);}
+.pc ul{list-style:none;margin-bottom:14px;}
+.pc li{font-size:12.5px;color:var(--dim);padding-left:18px;position:relative;margin-bottom:7px;line-height:1.5;}
+.pc li b{color:var(--ink);font-weight:650;}
+.pros li::before{content:'+';position:absolute;left:0;color:var(--ok);font-weight:800;}
+.cons li::before{content:'–';position:absolute;left:0;color:var(--blocked);font-weight:800;}
+
+table.cmp{width:100%;border-collapse:separate;border-spacing:0;margin-top:18px;font-size:12.5px;background:var(--surface);
+  border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--sh1);}
+table.cmp th{background:var(--surface2);text-align:left;padding:9px 13px;font-size:11px;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--dim);border-bottom:1px solid var(--border);}
+table.cmp td{padding:9px 13px;border-bottom:1px solid var(--border);color:var(--dim);vertical-align:top;}
+table.cmp tr:last-child td{border-bottom:none;}
+table.cmp td:first-child{font-weight:700;color:var(--ink);white-space:nowrap;}
+table.cmp .tdot{letter-spacing:1px;color:var(--amber);}
+table.cmp .tdot span{color:var(--surface3);}
+tr.hl-rec td{background:color-mix(in srgb,var(--ok) 7%,transparent);}
+tr.hl-dead td{background:color-mix(in srgb,var(--blocked) 6%,transparent);}
+tr.hl-dead td:not(:first-child){opacity:.6;}
+.recbox{margin-top:16px;border-left:4px solid var(--amber);background:color-mix(in srgb,var(--amber) 8%,var(--surface));
+  border-radius:12px;padding:14px 18px;font-size:13.5px;line-height:1.6;}
+.recbox b{font-weight:750;}
+
+/* ── latency ladder ── */
+.lad{display:flex;flex-direction:column;gap:12px;margin-top:6px;}
+.lrow{display:grid;grid-template-columns:250px 1fr 96px;gap:14px;align-items:center;font-size:12.5px;}
+.lrow .ln{color:var(--ink);font-weight:600;}
+.lrow .ld{font-size:11.5px;color:var(--faint);}
+.lbar{height:13px;border-radius:7px;background:var(--surface3);position:relative;overflow:hidden;}
+.lbar i{position:absolute;top:0;bottom:0;border-radius:7px;background:linear-gradient(90deg,var(--site),var(--amber));}
+.lms-txt{color:var(--faint);font-family:ui-monospace,Menlo,monospace;font-size:11.5px;text-align:right;}
+.lms-txt b{color:var(--amber-t);font-weight:600;}
+.lnote{font-size:11.5px;color:var(--faint);margin-top:10px;font-style:italic;}
+
+/* ── decision sheet ── */
+.sheet .drow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:13px 0;border-bottom:1px solid var(--border);}
+.sheet .drow:last-of-type{border-bottom:none;}
+.sheet .dl{width:190px;font-weight:700;font-size:13.5px;flex-shrink:0;}
+.sheet .dl span{display:block;font-size:10.5px;color:var(--faint);font-weight:500;}
+.pick{display:flex;align-items:center;gap:6px;padding:6px 13px;border-radius:999px;border:1.5px solid var(--border);
+  background:var(--surface);color:var(--dim);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;}
+.pick:hover{border-color:var(--border2);}
+.pick .vd{width:7px;height:7px;border-radius:50%;}
+.pick.on{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--ink);}
+#sheetout{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px;}
+#sheetstr{font-family:ui-monospace,Menlo,monospace;font-size:15px;font-weight:600;background:var(--navy);color:#fff;
+  padding:10px 18px;border-radius:12px;letter-spacing:1.5px;}
+body.dark #sheetstr{background:var(--surface3);}
+.btn{border:none;border-radius:12px;padding:10px 18px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;}
+.btn.amber{background:var(--amber);color:var(--navy);}
+.btn.amber:hover{filter:brightness(1.05);}
+.btn.ghost{background:var(--surface);border:1.5px solid var(--border);color:var(--dim);}
+.btn.ghost:hover{background:var(--surface2);}
+#warns{margin-top:14px;display:flex;flex-direction:column;gap:8px;}
+.warn{font-size:12.5px;border-left:3px solid var(--blocked);background:color-mix(in srgb,var(--blocked) 7%,var(--surface));
+  border-radius:9px;padding:9px 13px;color:var(--ink);line-height:1.5;}
+.warn.softw{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 8%,var(--surface));}
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--navy);color:#fff;
+  padding:11px 18px;border-radius:12px;font-size:13px;box-shadow:var(--sh2);opacity:0;pointer-events:none;
+  transition:.25s;z-index:300;}
+body.dark #toast{background:#E9EEF5;color:var(--navy);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.reflist{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.ref{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:4px 9px;color:var(--dim);}
+
+@media (max-width:1080px){ .optgrid{grid-template-columns:1fr;} }
+@media (max-width:900px){
+  #main{margin-left:0;padding:82px 16px 90px;}
+  #side{transform:translateX(-100%);}
+  body.side-open #side{transform:translateX(0);}
+  body.side-open #scrim{opacity:1;pointer-events:auto;}
+  #top .links{display:none;}
+  .grid2{grid-template-columns:1fr;}
+  .lrow{grid-template-columns:1fr;gap:4px;} .lms-txt{text-align:left;}
+  .sheet .dl{width:100%;}
+  .stepbar{flex-wrap:wrap;} .stepbar .scap{min-height:0;width:100%;order:5;}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important;scroll-behavior:auto!important;}
+}
+
+/* ══════════ V3 layer ══════════ */
+*{scrollbar-width:thin;scrollbar-color:var(--sb) transparent;}
+html:hover,.mpanel:hover,#side:hover,.dock:hover{scrollbar-color:var(--sb-h) transparent;}
+body{background:var(--bg-fx),var(--bg);background-attachment:fixed;}
+body.dark .card,body.dark .dwrap,body.dark .opanel,body.dark table.cmp,body.dark .mpanel{
+  background:linear-gradient(180deg,#0E1422,#090D16);
+  box-shadow:inset 0 1px 0 rgba(140,170,255,.09),0 10px 30px rgba(0,0,0,.5);}
+body.dark .mhead{background:#0E1422;}
+code{color:var(--codec);}
+.num{color:var(--num);font-weight:560;font-variant-numeric:tabular-nums;white-space:nowrap;}
+
+/* nav as a floating widget */
+#top{top:10px;left:0;right:0;margin:0 auto;width:min(1180px,calc(100vw - 20px));height:52px;
+  border:1px solid var(--border);border-radius:16px;box-shadow:var(--sh1);padding:0 10px 0 8px;}
+#top.hidden{top:-66px;}
+#side{padding-top:78px;}
+#side a b{font-weight:800;color:var(--ink);}
+
+/* terms, option references */
+button.term{border-bottom:none;color:color-mix(in srgb,var(--tc,var(--amber-t)) 84%,var(--ink));font-weight:550;
+  border-radius:4px;transition:background .15s,box-shadow .15s;}
+button.term:hover,button.term.open{border-bottom:none;color:var(--tc,var(--amber-t));
+  background:color-mix(in srgb,var(--tc,var(--amber)) 13%,transparent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--tc,var(--amber)) 13%,transparent);}
+button.oref{all:unset;cursor:pointer;font-weight:750;font-variant-numeric:tabular-nums;color:var(--oc,var(--ink));border-radius:4px;}
+button.oref:hover{background:color-mix(in srgb,var(--oc,var(--ink)) 12%,transparent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--oc,var(--ink)) 12%,transparent);}
+button.oref:focus-visible{outline:2px solid var(--amber);outline-offset:1px;}
+#pop{border-top:3px solid var(--tc,var(--amber));}
+#pop h4{display:block;margin:6px 0 6px;}
+#pop .tname{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:13px;color:var(--tc);}
+#pop .tlong{display:block;font-size:11.5px;font-weight:500;color:var(--dim);margin-top:1px;}
+#pop .tk{display:inline-block;font-size:9.5px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:var(--tc);
+  background:color-mix(in srgb,var(--tc) 12%,transparent);border-radius:999px;padding:2px 9px;}
+
+/* figure: controls on top, fixed-height readouts */
+.stepbar{display:flex;align-items:center;gap:12px;margin:0 0 10px;padding:0 6px 10px;border-bottom:1px dashed var(--border);}
+.sctl{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.stepbar .sbtn{display:flex;align-items:center;justify-content:center;padding:0;line-height:1;}
+.stepbar .sbtn.playing{background:color-mix(in srgb,var(--amber) 18%,var(--surface));color:var(--ink);
+  border-color:color-mix(in srgb,var(--amber) 50%,var(--border));}
+.stepbar .sct{width:38px;}
+.stepbar .scap{height:56px;min-height:0;overflow:hidden;display:flex;align-items:center;font-size:12.5px;line-height:1.45;color:var(--ink);}
+.stepbar .scap.idle{color:var(--dim);}
+.shint{display:inline-block;margin-left:6px;font-size:10.5px;font-weight:700;color:var(--amber-t);
+  background:color-mix(in srgb,var(--amber) 13%,transparent);border-radius:999px;padding:1px 9px;white-space:nowrap;}
+.svgbox{display:flex;align-items:center;}
+.svgbox svg{flex:1;min-width:0;}
+.dock{height:104px;min-height:0;overflow-y:auto;}
+.dock h5 .role{display:inline-flex;gap:5px;flex-wrap:wrap;text-transform:none;letter-spacing:0;}
+.rchip{font-size:10.5px;font-weight:600;color:var(--dim);background:var(--surface2);border:1px solid var(--border);
+  border-radius:999px;padding:1px 8px;white-space:nowrap;}
+.ebox:focus-visible{outline:none;}
+.ebox:focus-visible .nb{stroke:var(--amber);stroke-width:2.4;}
+
+/* comparison colour cues */
+table.cmp .tdot.s5,.tdot.s5 ~ .tw{color:var(--ok);} table.cmp .tdot.s4,.tdot.s4 ~ .tw{color:var(--site);}
+table.cmp .tdot.s3,.tdot.s3 ~ .tw{color:var(--amber-t);} table.cmp .tdot.s3{color:var(--amber);} table.cmp .tdot.s2,.tdot.s2 ~ .tw{color:var(--blocked);}
+table.cmp .tdot{display:block;}
+table.cmp .tw{display:block;font-size:10.5px;font-weight:600;}
+.tg{display:inline-block;font-size:11.5px;font-weight:600;border-radius:7px;padding:2px 9px;line-height:1.45;}
+.t-good{color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent);}
+.t-warn{color:var(--amber-t);background:color-mix(in srgb,var(--amber) 14%,transparent);}
+.t-bad{color:var(--blocked);background:color-mix(in srgb,var(--blocked) 12%,transparent);}
+.t-na{color:var(--faint);background:var(--surface2);}
+tr[data-opt]{cursor:pointer;}
+tr[data-opt]:hover td{background:color-mix(in srgb,var(--amber) 6%,transparent);}
+tr.cur td:first-child{box-shadow:inset 3px 0 0 var(--amber);}
+.dots.s5 i.f{background:var(--ok);} .dots.s4 i.f{background:var(--site);} .dots.s3 i.f{background:var(--amber);} .dots.s2 i.f{background:var(--blocked);}
+.tab b{font-weight:800;}
+.tab.picked::after{content:'\2713';font-size:11px;font-weight:800;color:var(--ok);}
+.tab.on.picked::after{color:inherit;}
+.pickbtn{margin-top:16px;background:var(--surface);border:1.5px solid var(--border2);color:var(--ink);padding:8px 14px;font-size:12.5px;}
+.pickbtn:hover{background:var(--surface2);}
+.pickbtn.on{border-color:var(--ok);color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,transparent);cursor:default;}
+
+/* latency scale */
+.lbar{background:repeating-linear-gradient(90deg,transparent 0,transparent calc(25% - 1px),var(--border2) calc(25% - 1px),var(--border2) 25%),var(--surface3);}
+.lax{position:relative;height:14px;}
+.lax span{position:absolute;top:0;transform:translateX(-50%);color:var(--num);font-family:ui-monospace,Menlo,monospace;font-size:10.5px;}
+.lax span:first-child{transform:none;} .lax span:last-child{transform:translateX(-100%);}
+.lms-txt b{color:var(--num);}
+
+/* sheet */
+.sheet .dl b{font-weight:800;}
+#sheetstr span{margin-right:.55em;} #sheetstr span:last-child{margin-right:0;}
+#sheetstr span.dev{color:var(--amber);}
+#sheetstat{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:16px;font-size:12.5px;font-weight:650;}
+.warn.infow{border-color:var(--border2);background:var(--surface2);}
+
+/* component modal */
+.modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:18px;
+  background:rgba(6,10,18,.56);backdrop-filter:blur(3px);}
+.modal.show{display:flex;}
+.mpanel{width:min(940px,100%);max-height:min(88vh,920px);overflow-y:auto;background:var(--surface);
+  border:1px solid var(--border2);border-radius:18px;box-shadow:var(--sh2);}
+.mhead{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:13px 16px;background:var(--surface);
+  border-bottom:1px solid var(--border);border-top:4px solid var(--kc,var(--amber));border-radius:18px 18px 0 0;}
+.mhead h3{margin:0;font-size:17px;letter-spacing:-.2px;}
+.mhead .grow{flex:1;min-width:0;}
+.mroles{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
+.mbody{padding:16px 20px 24px;}
+.mbody h4{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--faint);font-weight:700;margin:22px 0 9px;}
+.mbody p{font-size:13.5px;color:var(--dim);line-height:1.6;}
+.mbody p b{color:var(--ink);font-weight:650;}
+.mnote{border-left:3px solid var(--kc,var(--amber));background:color-mix(in srgb,var(--kc,var(--amber)) 8%,var(--surface));
+  border-radius:9px;padding:9px 13px;font-size:13px;line-height:1.55;margin-top:10px;color:var(--ink);}
+.mnote.open{--kc:var(--blocked);}
+.mnote .nk{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--kc,var(--amber-t));}
+.erow{display:grid;grid-template-columns:minmax(0,1fr) 56px minmax(0,1fr);row-gap:6px;align-items:center;
+  padding:10px 0;border-bottom:1px solid var(--border);}
+.erow:last-child{border-bottom:none;}
+.enode{font-size:12.5px;font-weight:650;text-align:center;padding:7px 10px;border-radius:9px;color:var(--ink);
+  border:1.2px solid color-mix(in srgb,var(--c) 60%,var(--border));background:color-mix(in srgb,var(--c) 12%,var(--surface));overflow-wrap:anywhere;}
+.enode.me{border-color:var(--amber);border-width:2px;}
+.earrow{position:relative;height:2px;background:var(--c);}
+.earrow::after{content:'';position:absolute;right:0;top:-4px;border:5px solid transparent;border-left-color:var(--c);border-right-width:0;}
+.earrow.both::before{content:'';position:absolute;left:0;top:-4px;border:5px solid transparent;border-right-color:var(--c);border-left-width:0;}
+.earrow.blk{background:repeating-linear-gradient(90deg,var(--c) 0 5px,transparent 5px 9px);}
+.earrow.blk::after{content:'\2715';border:0;right:50%;transform:translateX(50%);top:-9px;color:var(--c);font-size:13px;font-weight:800;line-height:1;
+  background:var(--surface);padding:0 2px;}
+.emeta{grid-column:1/-1;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:12.5px;color:var(--dim);}
+.etag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--c);white-space:nowrap;}
+.uses{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;color:var(--dim);}
+.uses button.oref{padding:3px 11px;border:1.5px solid color-mix(in srgb,var(--oc,var(--border2)) 45%,var(--border));border-radius:999px;font-size:12px;}
+
+/* code panes */
+.cwrap{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:14px;align-items:start;}
+.cpane{background:var(--code-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;padding-bottom:8px;
+  font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:12px;line-height:1.65;}
+.chead{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;border-bottom:1px solid var(--border);margin-bottom:6px;
+  font-family:'Inter',system-ui,Arial,sans-serif;font-size:11px;color:var(--faint);}
+.chead .cfile{font-weight:650;color:var(--dim);}
+.cl{display:grid;grid-template-columns:34px minmax(0,1fr);border-left:3px solid var(--lc,transparent);}
+.cl.lit{background:color-mix(in srgb,var(--lc) 8%,transparent);}
+.cpane.out .cl{grid-template-columns:12px minmax(0,1fr);}
+.lno{text-align:right;padding-right:10px;color:var(--faint);opacity:.75;user-select:none;}
+.lc{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink);padding-right:10px;}
+.tk-cm{color:var(--faint);font-style:italic;} .tk-str{color:var(--tk-str);} .tk-num,.tk-lit{color:var(--tk-num);}
+.tk-decl{color:var(--tk-decl);} .tk-ctrl{color:var(--tk-ctrl);} .tk-cst{color:var(--tk-cst);} .tk-typ{color:var(--tk-typ);}
+.tk-fn,.tk-mth{color:var(--tk-fn);} .tk-prop{color:var(--tk-prop);} .tk-pun{color:var(--faint);}
+.cnotes{list-style:none;display:flex;flex-direction:column;gap:9px;}
+.cnotes li{border-left:3px solid var(--lc);padding:1px 0 1px 10px;font-size:12.5px;color:var(--dim);line-height:1.5;}
+.cnotes li b{color:var(--ink);font-weight:650;}
+.lref{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--lc);}
+
+@media (max-width:900px){
+  .stepbar .scap{height:98px;align-items:flex-start;}
+  .dock{height:176px;}
+  .cwrap{grid-template-columns:1fr;}
+  .mbody{padding:14px 14px 20px;}
+}
+@media (max-width:760px){
+  table.cmp thead{display:none;}
+  table.cmp,table.cmp tbody,table.cmp tr{display:block;width:100%;}
+  table.cmp tr{padding:10px 12px;border-bottom:1px solid var(--border);}
+  table.cmp tr:last-child{border-bottom:none;}
+  table.cmp td{display:flex;gap:10px;align-items:baseline;border:0;padding:3px 0;white-space:normal;background:none!important;}
+  table.cmp td::before{content:attr(data-l);flex:0 0 92px;font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--faint);font-weight:700;}
+  table.cmp td:first-child::before{content:none;}
+  table.cmp td:first-child{box-shadow:none!important;font-size:14px;}
+  table.cmp .tdot,table.cmp .tw{display:inline;}
+  tr.cur{box-shadow:inset 3px 0 0 var(--amber);}
+}
+.iconbtn svg{display:block;}
+</style>
+</head>
+<body class="side-closed">
+
+<header id="top">
+  <button id="navtoggle" class="iconbtn" aria-label="Toggle section navigation" title="Sections">☰</button>
+  <div id="brand"><span class="mark"></span><b>Abethu <span>seam decision explorer</span></b></div>
+  <nav class="links" aria-label="Quick links">
+    <a href="#split">The split</a><a href="#seam">The seam</a><a href="#latency">Latency</a>
+    <a href="#dec-A">A</a><a href="#dec-B">B</a><a href="#dec-C">C</a><a href="#dec-D">D</a><a href="#dec-E">E</a><a href="#dec-F">F</a>
+    <a href="#sheet">Decision sheet</a>
+  </nav>
+  <div class="right">
+    <button id="theme" class="iconbtn" data-theme-toggle aria-label="Toggle light or dark theme"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 3a7 7 0 0 1 0 14z" fill="currentColor"/></svg></button>
+  </div>
+</header>
+
+<aside id="side" aria-label="Section navigation">
+  <div class="grp">Context</div>
+  <a href="#split"><span class="dot"></span>The split</a>
+  <a href="#topology"><span class="dot"></span>Master topology</a>
+  <a href="#seam"><span class="dot"></span>The seam problem</a>
+  <a href="#latency"><span class="dot"></span>Latency reality</a>
+  <div class="grp">Decisions</div>
+  <a href="#dec-A"><span class="dot"></span><b>A</b> content path</a>
+  <a href="#dec-B"><span class="dot"></span><b>B</b> live facts</a>
+  <a href="#dec-C"><span class="dot"></span><b>C</b> inquiries write</a>
+  <a href="#dec-D"><span class="dot"></span><b>D</b> auth topology</a>
+  <a href="#dec-E"><span class="dot"></span><b>E</b> cert verify</a>
+  <a href="#dec-F"><span class="dot"></span><b>F</b> freshness SLA</a>
+  <div class="grp">Closing</div>
+  <a href="#couple"><span class="dot"></span>Cross-couplings</a>
+  <a href="#costs"><span class="dot"></span>Second-order costs</a>
+  <a href="#stable"><span class="dot"></span>What doesn't change</a>
+  <a href="#sheet"><span class="dot"></span>Decision sheet</a>
+</aside>
+<div id="scrim"></div>
+
+<main id="main"><div class="wrap">
+
+<section id="split">
+  <div class="eyebrow">Architecture record, pre-ADR-010</div>
+  <h1>One product, two clouds,<br>and the seam between them.</h1>
+  <p class="lead">The frontend is now definitively split: the <b>public website is Next.js on Vercel</b> (cpt1, Cape Town) and the <b>LMS is TanStack Start on AWS</b> (af-south-1, Cape Town), with <b>Directus</b> writing the <code>cms</code> schema beside the operational <code>public</code> schema in one VPC-private RDS PostgreSQL 16. Same city. Different clouds. Every interesting problem in this document lives in the amber band between the two dashed boxes below.</p>
+  <div class="herofacts" aria-hidden="true" data-notag>
+    <span class="hf"><i style="background:var(--site)"></i>Next.js site on Vercel cpt1</span>
+    <span class="hf"><i style="background:var(--lms)"></i>TanStack LMS on AWS af-south-1</span>
+    <span class="hf"><i style="background:var(--cms)"></i>Directus, in-VPC</span>
+    <span class="hf"><i style="background:var(--amber)"></i>Six seam decisions, A–F</span>
+  </div>
+  <p class="body" style="margin-top:20px">This page exists so the six seam decisions — <b>A</b> through <b>F</b> — get made deliberately, with the trade-offs on the table. Each decision carries one interactive diagram per option: every box opens a full breakdown with code, every arrow reports what travels along it, and the recommended options step through as a walkthrough. Beneath each diagram sit latency, freshness, complexity, PII placement and failure modes, then a recommendation. The <a href="#sheet" style="color:var(--amber-t);font-weight:650">decision sheet</a> at the end assembles the picks into the sign-off string and an ADR-010 draft.</p>
+</section>
+
+<section id="topology">
+  <div class="eyebrow">Reference</div>
+  <h2>Master topology</h2>
+  <p class="body">The end-state if every recommendation is taken (A3 B3 C2 D1 E1 F2). The amber band is the seam — the only place data crosses clouds — and every amber arrow is a crossing.</p>
+  <div class="dwrap" id="dg-master"></div>
+  <div class="legend" id="masterlegend"></div>
+</section>
+
+<section id="seam">
+  <div class="eyebrow">The problem</div>
+  <h2>Why the seam is the whole design</h2>
+  <p class="body"><b>ADR-005 makes RDS VPC-private</b> — nothing outside the VPC connects to it directly. Vercel functions, even running in cpt1 a few kilometres from af-south-1, are outside that VPC. So the pattern the wireframes and the exploration doc assumed — <i>"the site reads <code>cms</code> and <code>public</code> directly over pg"</i> — cannot exist as written. Every one of the six decisions is a consequence of that single fact.</p>
+  <div class="grid2" style="margin-top:16px">
+    <div class="card">
+      <h3>The connection math</h3>
+      <p class="body" style="margin:0">An RDS <code>t4g.small</code> defaults to roughly 190 connections, a limit derived from instance memory. Vercel scales function instances with traffic — a campaign burst can mean hundreds of concurrent instances, and with direct pg each one wants a connection of its own. The LMS, meanwhile, holds a long-lived pool shared by its request handlers and pg-boss workers. Two connection models against one small database — resolved by giving the site <b>zero</b> connections.</p>
+    </div>
+    <div class="card">
+      <h3>The PII line</h3>
+      <p class="body" style="margin:0">Marketing copy is not personal data — it can live anywhere. Lead PII (name, phone, email in <code>inquiries</code>) is, and POPIA is the reason af-south-1 was chosen at all. The write path decision (C) is really the question: <b>whose memory does the PII pass through, and where does it rest?</b> The recommended shape stores it only in-VPC.</p>
+    </div>
+    <div class="card">
+      <h3>Two deploy models</h3>
+      <p class="body" style="margin:0">Vercel is git-push with preview deploys per PR; AWS is CDK + GitHub Actions OIDC (ADR-007). That's two environment matrices, two secret stores, two monitoring surfaces. Preview deploys also need a data story — a staging seam API or fixtures — or every PR preview hits production facts.</p>
+    </div>
+    <div class="card">
+      <h3>Two origins, one product</h3>
+      <p class="body" style="margin:0"><code>abethuskills.co.za</code> (Vercel) and <code>app.abethuskills.co.za</code> (AWS) are different origins. Cookies, sessions and CSRF all care about that boundary — decision D chooses whether a session ever exists on the marketing origin. The printed certificate QR (decision E) chooses which origin goes on paper, permanently.</p>
+    </div>
+  </div>
+  <div class="callout" style="margin-top:16px"><b>What survives untouched:</b> the v4.17 schema already encodes the boundary — three schemas, Directus role scoped to <code>cms</code>+<code>directus</code>, <code>public</code> structurally unreachable from the CMS. The split changes <i>transport</i>, never <i>semantics</i>.</div>
+</section>
+
+<section id="latency">
+  <div class="eyebrow">Numbers</div>
+  <h2>Latency reality</h2>
+  <p class="body">cpt1 and af-south-1 are the same metro — the cross-cloud hop is roughly <b>2–10&nbsp;ms</b>. What matters is not the hop itself but how many hops a view pays and whether they sit on the request path at all. The rows below are same-metro TTFB estimates for the paths this document discusses; they are an <i>ordering</i>, not measurements.</p>
+  <div class="card"><div class="lad" id="ladder"></div></div>
+</section>
+
+<div id="decisions"></div>
+
+<section id="couple">
+  <div class="eyebrow">Interactions</div>
+  <h2>Cross-couplings</h2>
+  <p class="body">The six decisions are not independent. These are the edges between them:</p>
+  <div class="grid2">
+    <div class="card"><h3>B4 collapses B into A</h3><p class="body" style="margin:0">If facts are pushed into <code>cms</code>, the "live facts" read path <i>becomes</i> the content path — and the ops/marketing schema boundary you drew on purpose starts to blur. Choosing B4 makes decision F mostly moot too, because freshness stops being a caching question and becomes whatever the job cadence is.</p></div>
+    <div class="card"><h3>B5 breaks the JSON-LD</h3><p class="body" style="margin:0">Client-side facts never enter the HTML, so the <code>Course</code> JSON-LD ships without a price and SERP ↔ page parity dies — Google sees one thing, the visitor another. B5 is only acceptable as a live widget <i>on top of</i> B3, never instead of it.</p></div>
+    <div class="card"><h3>C4 breaks the v4.8 echo</h3><p class="body" style="margin:0">The idempotency contract returns the existing row on a duplicate (23505 → same-row echo). A queue makes the write async — the form can only say "accepted", not "here's your enquiry". The database guarantee survives; the UX contract doesn't.</p></div>
+    <div class="card"><h3>F3/F4 presuppose pg-boss</h3><p class="body" style="margin:0">Event-driven revalidation needs the job plumbing that also serves B4. Start on F2; graduate to F4 when pg-boss exists for other reasons — don't build the event bus for freshness alone.</p></div>
+  </div>
+</section>
+
+<section id="costs">
+  <div class="eyebrow">Accepted overhead</div>
+  <h2>Second-order costs of the split</h2>
+  <p class="body">These hold whichever letters are picked:</p>
+  <div class="grid2">
+    <div class="card"><h3>The seam contract</h3><p class="body" style="margin:0">The LMS read API + inquiries endpoint is a versioned public contract: rate limits, server-to-server auth, and bot defence (Turnstile / honeypot — the idempotency key dedups <i>retries</i>, not abuse). Recommend a shared <code>seam-contract</code> package (zod schemas) as the single source of payload truth.</p></div>
+    <div class="card"><h3>Shared design system</h3><p class="body" style="margin:0">App Router and TanStack Router can't share shells. Tokens and primitives (Button, Badge, Card, Table) move into a router-agnostic <code>@abethu/ui</code> package — which argues for a pnpm/Turborepo monorepo: <code>site</code> · <code>lms</code> · <code>ui</code> · <code>seam-contract</code>.</p></div>
+    <div class="card"><h3>Attribution across the seam</h3><p class="body" style="margin:0">The "ad → lead → enrolment → invoice in one query" goal only survives if UTM/source fields captured on Vercel ride inside the inquiries payload into <code>public.inquiries</code>. One forgotten field breaks the profitability chain at the seam.</p></div>
+    <div class="card"><h3>Docs to correct</h3><p class="body" style="margin:0">Encode the topology as <b>ADR-010</b>; fix the exploration doc's section 2 stale-claim row ("no Next.js anywhere" is wrong — the <i>LMS</i> is TanStack, the <i>site</i> is Next.js); carve out the Next.js path in v4.8 section 6; disambiguate "the app" in the tracker's G1/F12.</p>
+      <div class="reflist"><span class="ref">ADR-005 infra</span><span class="ref">ADR-002 auth</span><span class="ref">tracker G1/F12</span><span class="ref">v4.8 section 6</span><span class="ref">exploration section 2</span></div></div>
+  </div>
+</section>
+
+<section id="stable">
+  <div class="eyebrow">Invariants</div>
+  <h2>What doesn't change</h2>
+  <p class="body">The schema layer is untouched: all 67 <code>public</code> tables, the 7 <code>cms</code> tables, the replay pipeline, the probes, and the Directus role scoping stand exactly as encoded in v4.17. The 13 integration touchpoints keep their <i>semantics</i> — who writes what, which views feed which surfaces — and change only their <i>transport</i>. G2 (online payments) remains the sole schema-complete gate, and none of A–F touches it.</p>
+</section>
+
+<section id="sheet" class="sheet">
+  <div class="eyebrow">Sign-off</div>
+  <h2>Decision sheet</h2>
+  <p class="body">One option per decision, pre-set to the recommendations and kept in step with the picks made inside each decision above. Conflicts and dependencies between picks surface beneath. The string is the sign-off for ADR-010; the draft is the same set of decisions written out as Markdown.</p>
+  <div class="card" id="sheetbody"></div>
+  <div id="sheetout">
+    <span id="sheetstr">—</span>
+    <button class="btn amber" id="copybtn">Copy string</button>
+    <button class="btn ghost" id="adrbtn">Copy ADR-010 draft</button>
+    <button class="btn ghost" id="resetbtn">Reset to recommendations</button>
+  </div>
+  <div id="sheetstat" aria-live="polite"></div>
+  <div id="warns"></div>
+</section>
+
+</div></main>
+<div id="pop" role="dialog" aria-modal="false"></div>
+<div id="modal" class="modal" aria-hidden="true"><div class="mpanel" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+  <header class="mhead"><div class="grow"><h3 id="mtitle"></h3><div class="mroles"></div></div>
+    <button class="iconbtn" data-theme-toggle aria-label="Toggle light or dark theme"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 3a7 7 0 0 1 0 14z" fill="currentColor"/></svg></button>
+    <button class="iconbtn" id="mclose" aria-label="Close">✕</button></header>
+  <div class="mbody"></div></div></div>
+<div id="toast" role="status"></div>
+<script>
+/* ═══════════════════ glossary ═══════════════════ */
+const GLOSS={
+'ISR':['Next.js','Incremental Static Regeneration','Pages are built ahead of time and served as static files, but individual pages can be <b>rebuilt on demand</b> — like reprinting one page of a brochure instead of the whole print run. Time-based revalidation serves the stale page while a fresh one renders in the background. On-demand revalidation (<b>revalidatePath</b>) invalidates one route, and the next request to it renders fresh.'],
+'SSG':['Next.js','Static Site Generation','Every page is rendered to plain HTML at <b>build time</b>. Nothing dynamic happens per request — the trade is maximum speed and resilience against a feedback loop where any content change means a full rebuild.'],
+'SSR':['Next.js','Server-Side Rendering','The page is rendered <b>on the server for every request</b> — always fresh, but every view pays the full data-fetching cost, and any upstream dependency (here: Directus or the LMS) sits directly on the request path.'],
+'SWR':['Caching','stale-while-revalidate','A cache directive that says: when an entry expires, <b>serve the stale copy immediately</b> and refresh it in the background. The visitor never waits on the origin; the next visitor gets the fresh copy. It converts origin latency into a bounded staleness window.'],
+'s-maxage':['Caching','Shared-cache max age','The <code>Cache-Control</code> directive that sets how long a <b>shared cache</b> (Vercel’s edge, a CDN) may serve a response without revalidating — separate from the browser’s <code>max-age</code>. For a fetch made during a server render the equivalent knob is that fetch’s <code>revalidate</code> window, which is the one decision F turns.'],
+'edge cache':['Caching','Vercel-side caches','Two layers on the Vercel side answer without touching AWS. The <b>Data Cache</b> stores the result of a fetch made during a server render, for that fetch’s <code>revalidate</code> window. The <b>CDN cache</b> stores whole responses, governed by <b>s-maxage</b> + <b>SWR</b> headers. Facts that must sit inside the HTML go through the first.'],
+'TTL':['Caching','Time to live','How long a cached entry counts as fresh. Different fact classes get different TTLs: a price that changes twice a year can be cached for hours; seat counts that move during enrolment get ~60 seconds.'],
+'JSON-LD':['SEO','Structured data','A block of JSON embedded in the page’s HTML that describes the content in schema.org vocabulary — here a <code>Course</code> with its price and next intake. Google reads it to build <b>rich results</b>. Because it ships inside the HTML, whatever produced the HTML must already know the price — which is why client-side fact fetching (B5) breaks it.'],
+'rich results':['SEO','Enhanced search listings','Search listings with extras — price, rating, availability — built from the page’s <b>JSON-LD</b>. For a course catalogue, showing the price directly in the SERP is a real click-through lever.'],
+'SERP':['SEO','Search engine results page','The Google results page itself. “SERP ↔ page parity” means: what Google shows in the listing must match what the visitor sees on the page — a stale or missing price in either place erodes both trust and ranking.'],
+'CWV':['SEO','Core Web Vitals','Google’s user-experience metrics (loading, interactivity, layout stability) that feed ranking. Anything that delays first paint — like waiting on a cross-cloud fetch per view — or pops content in late — like client-side facts — shows up here.'],
+'TTFB':['Performance','Time to first byte','How long the browser waits before the server’s first response byte arrives. Static edge hits sit around 15–40 ms; every synchronous hop on the request path adds its own latency to this floor.'],
+'noindex':['SEO','Robots directive','A signal telling search engines not to index a page or origin. The app subdomain should stay entirely noindex — it is an authenticated tool, not a public surface — which is exactly why a public, printed verify URL doesn’t belong on it (decision E).'],
+'CORS':['Web platform','Cross-Origin Resource Sharing','The browser mechanism governing whether JavaScript on one origin may call another. It exists to protect users; operationally it means server-side allowlists, <b>preflight</b> requests, and a public browser-facing surface to defend. C2 avoids it entirely because the browser only ever talks to its own origin.'],
+'preflight':['Web platform','CORS preflight','An automatic <code>OPTIONS</code> request the browser sends before certain cross-origin calls to ask permission. It adds a round-trip and a server behaviour you must implement and cache correctly — pure overhead bought by choosing a cross-origin POST.'],
+'CSRF':['Security','Cross-site request forgery','An attack where a hostile page makes the victim’s browser send authenticated requests using cookies it automatically attaches. The defence surface scales with <b>where cookies exist</b> — which is why a parent-domain session cookie (D2) doubles it: both origins can now be ridden.'],
+'idempotency key':['Contract','v4.8 duplicate guard','A unique token the form mints once and re-sends on every retry of the same submission. The database has a unique constraint on it, so a retry cannot create a second row — the insert either lands or collides, and a collision (<b>23505</b>) is answered by returning the already-inserted row. The user can double-click, lose signal, retry — the outcome is one row, every time.'],
+'23505':['PostgreSQL','unique_violation','Postgres’s error code for a unique-constraint collision. In the v4.8 contract it is not an error but a <b>signal</b>: this exact submission already landed — fetch that row and echo it back as the success response.'],
+'LISTEN/NOTIFY':['PostgreSQL','Pub/sub inside Postgres','Postgres’s built-in notification channel: a session <code>LISTEN</code>s on a channel and is woken when anything <code>NOTIFY</code>s it. It requires a <b>persistent, dedicated session</b>, which a transaction-mode pooler cannot provide. pg-boss can use it as an optional low-latency wake-up on top of polling.'],
+'pg-boss':['Jobs','Postgres-backed job queue','A job queue that lives inside Postgres itself — jobs are rows, claimed by polling workers with <code>SKIP LOCKED</code> so no two workers take the same job. Recent versions can add <b>LISTEN/NOTIFY</b> for low-latency wake-up. No extra infrastructure, and a job can be enqueued in the same transaction as the data change.'],
+'Server Action':['Next.js','Server-side form handler','A function that runs on the server but is invoked from a form or component as if it were local — the form POSTs to it natively, so it works <b>without client JavaScript</b>. It is the site-side half of C2: receive the form body, forward it across the seam, never store it.'],
+'progressive enhancement':['Web platform','Works before JS','Building so the baseline — a plain HTML form POST — works even if JavaScript never loads, then layering nicer behaviour on top. C2 preserves it because a Server Action is reachable by a native form submit; C3 abandons it because the POST itself requires client JS.'],
+'VPC':['AWS','Virtual Private Cloud','A private network inside AWS. Resources inside it (RDS, per ADR-005) have no public address — traffic can only originate from inside. It is the wall every “direct pg” option dies against, and the reason all site↔database contact goes through the LMS.'],
+'RDS':['AWS','Managed PostgreSQL','AWS’s managed database service running PostgreSQL 16 — one instance, three schemas (<code>public</code>, <code>cms</code>, <code>directus</code>), reachable only inside the VPC.'],
+'SQS':['AWS','Simple Queue Service','AWS’s managed message queue. Durable and elastic — but it is a <b>regional service outside the VPC</b>, it makes the write asynchronous, and it splits the idempotency guarantee across a producer and a consumer.'],
+'CDK':['AWS','Cloud Development Kit','Infrastructure as TypeScript code, synthesised to CloudFormation. The AWS half deploys this way (ADR-007); the Vercel half deploys by git push. Two deploy models is one of the split’s standing costs.'],
+'OIDC':['Auth','OpenID Connect (CI)','Here: GitHub Actions authenticating to AWS with short-lived OIDC tokens instead of stored secrets — the deploy pipeline holds no long-lived AWS keys.'],
+'Directus':['CMS','Headless CMS, self-hosted in-VPC','The content editing tool. It owns the <code>cms</code> schema through a database role that can reach <b>only</b> <code>cms</code> + <code>directus</code> — the operational <code>public</code> schema is structurally invisible to it. Editors work here; the site consumes what they publish.'],
+'Directus Flows':['CMS','Directus automation','Directus’s built-in automation: “on publish of X, do Y”. In A3, Y is an HTTP POST to the site’s revalidate endpoint — the webhook that turns a publish into a one-page rebuild.'],
+'revalidatePath':['Next.js','Targeted cache purge','Next.js API that invalidates one route’s cached render. Regeneration happens on the next request to that route, which waits for the fresh render. The receiving end of the A3 webhook: publish → webhook → <code>revalidatePath(’/courses/x’)</code> → one page rebuilds.'],
+'revalidateTag':['Next.js','Tag-scoped cache purge','Like <b>revalidatePath</b>, but keyed to data tags instead of routes — invalidate “everything that used the price of course 12” wherever it appears. The mechanism F3/F4’s event lane would use. In Next.js 16 the <code>max</code> profile marks the tag stale, so the next visit is served the old value while the refresh runs.'],
+'Better-Auth':['Auth','Session library','The authentication library the LMS uses (ADR-002) — all eight roles, 2FA, magic links. Decision D is about which <b>origin</b> its session cookie lives on, not about replacing it.'],
+'Turnstile':['Security','Cloudflare’s CAPTCHA alternative','A low-friction bot check. Needed because the idempotency key deduplicates <b>retries of one honest submission</b> — it does nothing against a bot submitting a thousand different ones. Abuse defence is a separate layer.'],
+'honeypot':['Security','Hidden trap field','A form field invisible to humans; anything that fills it is a bot and gets silently dropped. Cheap first line of bot defence alongside Turnstile.'],
+'POPIA':['Compliance','Protection of Personal Information Act','South Africa’s data-protection law — the reason af-south-1 hosts the data at all. It shapes decision C: lead PII should <b>rest</b> only in-VPC, and every component whose memory it merely transits should be provably non-logging.'],
+'PII':['Compliance','Personally identifiable information','Data that identifies a person — for the enquiry form: name, phone, email. Marketing copy is not PII; the <code>inquiries</code> payload is, and decision C is entirely about its path.'],
+'301':['HTTP','Permanent redirect','The status code meaning “moved permanently — remember the new address”. E3’s shim: legacy app-domain QR hits get 301’d to the site page, forever.'],
+'UTM':['Analytics','Campaign source tags','Query parameters (<code>utm_source</code> and friends) identifying which ad or campaign brought the visitor. They must ride inside the inquiries payload across the seam, or the ad-to-invoice attribution chain snaps at the first hop.'],
+'App Router':['Next.js','Next.js routing model','Next.js’s current architecture — the site is built on it: server components, Server Actions, ISR, route-level caching.'],
+'TanStack Start':['LMS','LMS framework','The full-stack TanStack framework the LMS is built on — Router, Query, and server functions. It cannot share an app shell with Next.js, which is why shared UI moves into a router-agnostic package.'],
+'zod':['Contract','Runtime schema validation','TypeScript-first validation schemas. The <code>seam-contract</code> package would export zod schemas both sides import — one definition of the payload, validated at runtime on each end of the seam.'],
+'Turborepo':['Tooling','Monorepo build system','Build orchestration for a pnpm workspace holding <code>site</code>, <code>lms</code>, <code>ui</code> and <code>seam-contract</code> — so the two apps and their shared packages version together.'],
+'EducationalOccupationalCredential':['SEO','schema.org credential type','The structured-data type for a certificate or qualification. Marking the verify page up with it lets the credential appear as a rich result — value that accrues to whichever domain hosts the page, permanently.'],
+};
+const GALIAS={'data cache':'edge cache','Data Cache':'edge cache','stale-while-revalidate':'SWR','Server Actions':'Server Action','VPC-private':'VPC','idempotency':'idempotency key'};
+
+/* tagger: glossary terms, option references, measured quantities */
+const OPT={};
+const CATC={'Next.js':'--site-t','LMS':'--lms-t','PostgreSQL':'--lms-t','Jobs':'--lms-t','CMS':'--cms-t','AWS':'--infra-t','Tooling':'--infra-t',
+  'Caching':'--amber-t','Performance':'--amber-t','SEO':'--ok','Analytics':'--ok','Security':'--blocked','Compliance':'--blocked','Auth':'--blocked',
+  'Web platform':'--num','HTTP':'--num','Contract':'--num'};
+const catVar=k=>CATC[(GLOSS[k]||[])[0]]||'--amber-t';
+const TAGSRC=(()=>{const keys=[...Object.keys(GLOSS),...Object.keys(GALIAS)].sort((a,b)=>b.length-a.length)
+  .map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+  const num='[~\\u2264+]{0,2}\\d+(?:[\\u2013-]\\d+)?[ \\u00a0](?:ms|s|connections|tables|courses|steps)';
+  return '(?<![\\w-])(?:('+keys.join('|')+')|([A-F][1-5])|('+num+'))(?![\\w-])';})();
+const TAGRE=new RegExp(TAGSRC,'g'),TAGTEST=new RegExp(TAGSRC);
+function tagInto(root,skip){
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(n){
+    let p=n.parentElement;
+    while(p&&p!==root){
+      if(/^(CODE|BUTTON|A|SCRIPT|STYLE|svg|H1)$/i.test(p.tagName)||p.classList.contains('num')||p.hasAttribute('data-notag'))return NodeFilter.FILTER_REJECT;
+      p=p.parentElement;}
+    return TAGTEST.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_SKIP;}});
+  const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+  nodes.forEach(n=>{
+    const frag=document.createDocumentFragment();let last=0;const s=n.nodeValue;
+    s.replace(TAGRE,(m,term,oref,num,idx)=>{
+      let node=null;
+      if(term){const key=GALIAS[term]||term;
+        if(key!==skip){node=document.createElement('button');node.className='term';node.type='button';
+          node.dataset.term=key;node.style.setProperty('--tc','var('+catVar(key)+')');}}
+      else if(oref){
+        if(OPT[oref]){node=document.createElement('button');node.className='oref';node.type='button';node.dataset.opt=oref;
+          const v=OPT[oref].o.verdict;if(v!=='ok')node.style.setProperty('--oc','var('+(v==='rec'?'--ok':'--blocked')+')');
+          node.setAttribute('aria-label',oref+', '+OPT[oref].o.name);}}
+      else{node=document.createElement('span');node.className='num';}
+      if(!node)return m;
+      frag.appendChild(document.createTextNode(s.slice(last,idx)));
+      node.textContent=m;frag.appendChild(node);last=idx+m.length;return m;});
+    frag.appendChild(document.createTextNode(s.slice(last)));
+    n.parentNode.replaceChild(frag,n);});
+}
+/* popover: click to open, colour-coded by concept */
+const POP=(function(){
+  const pop=document.getElementById('pop');let open=false,anchor=null,rect=null;
+  function close(){pop.classList.remove('show');open=false;if(anchor)anchor.classList.remove('open');anchor=null;}
+  function fill(key){
+    const g=GLOSS[key];if(!g)return false;
+    pop.style.setProperty('--tc','var('+catVar(key)+')');
+    pop.innerHTML=`<span class="tk">${g[0]}</span><h4><span class="tname">${key}</span><span class="tlong">${g[1]}</span></h4><p>${g[2]}</p>`;
+    tagInto(pop.querySelector('p'),key);return true;}
+  function place(){
+    const r=rect,pw=Math.min(340,window.innerWidth-24);
+    let x=r.left+r.width/2-pw/2;x=Math.max(12,Math.min(window.innerWidth-pw-12,x));
+    pop.style.left=x+'px';pop.style.top='0px';const ph=pop.offsetHeight;
+    let y=r.top-ph-10;if(y<70)y=r.bottom+10;
+    pop.style.top=Math.max(8,y)+'px';}
+  function show(btn){
+    if(pop.contains(btn)){if(fill(btn.dataset.term))place();return;}
+    if(anchor===btn){close();return;}
+    close();if(!fill(btn.dataset.term))return;
+    anchor=btn;btn.classList.add('open');rect=btn.getBoundingClientRect();
+    pop.classList.add('show');open=true;place();}
+  document.addEventListener('click',e=>{
+    const t=e.target.closest('button.term');
+    if(t){show(t);return;}
+    if(open&&!pop.contains(e.target))close();});
+  document.addEventListener('scroll',()=>{if(open)close();},{passive:true,capture:true});
+  return {close,isOpen:()=>open};
+})();
+
+/* ═══════════════════ deterministic text measurement ═══════════════════ */
+function chW(ch){
+  if("iljI.,:;|!'".includes(ch))return 3.6;
+  if('ftr()[]{}"/\\-'.includes(ch))return 4.9;
+  if('mwMW'.includes(ch))return 11.2;
+  if(ch===' ')return 3.7;
+  if(ch==='·')return 4.8;
+  if(ch==='—')return 12.5;
+  if(ch==='→'||ch==='×'||ch==='–')return 8.5;
+  if(/[A-Z]/.test(ch))return 8.7;
+  if(/[0-9]/.test(ch))return 7.6;
+  if(/[a-z]/.test(ch))return 7.0;
+  return 7.4;
+}
+const tw=(s,fs=13)=>{let w=0;for(const c of String(s))w+=chW(c);return w*fs/13;};
+
+/* ═══════════════════ diagram engine ═══════════════════ */
+const S={W:820,ZV:{x:16,w:320},seam:{x:344,w:64},ZA:{x:416,w:388}};
+const KIND={site:'c-site',lms:'c-lms',cms:'c-cms',mut:'c-mut'};
+const NS='http://www.w3.org/2000/svg';
+window.AUDIT=[];
+function el(n,at){const e=document.createElementNS(NS,n);for(const k in at)e.setAttribute(k,at[k]);return e;}
+function boxW(b){return b.w||Math.max(72,Math.round(Math.max(tw(b.label,13),tw(b.sub||'',10.5)))+30);}
+
+function layout(spec){
+  if(spec.manual){
+    const B={};(spec.boxes||[]).forEach(b=>{B[b.id]={...b,w:b.w||boxW(b),h:b.h||44};});
+    return {B,y0:spec.y0,zoneH:spec.zoneH,chBelow:0,H:spec.H};
+  }
+  const rows=spec.rows||1,out=!!(spec.outside&&spec.outside.length);
+  const y0=out?72:16, rowH=spec.rowH||[], gH=r=>rowH[r]||46, gap=30;
+  const rowTop=[];let acc=y0+36;
+  for(let r=0;r<rows;r++){rowTop[r]=acc;acc+=gH(r)+gap;}
+  const zoneH=(acc-gap+20)-y0, B={};
+  (spec.outside||[]).forEach(b=>{const w=boxW(b);B[b.id]={...b,w,h:b.h||32,y:16,x:b.x!=null?b.x:S.ZV.x+40};});
+  ['v','a'].forEach(zk=>{
+    const zone=zk==='v'?S.ZV:S.ZA;
+    for(let r=0;r<rows;r++){
+      const rb=(spec[zk]||[]).filter(b=>b.row===r);
+      if(!rb.length)continue;
+      const widths=rb.map(boxW), total=widths.reduce((a,w)=>a+w,0)+(rb.length-1)*24;
+      let x=zone.x+Math.max(14,(zone.w-total)/2);
+      rb.forEach((b,i)=>{B[b.id]={...b,x,y:rowTop[b.row],w:widths[i],h:b.h||gH(b.row)};x+=widths[i]+24;});
+    }
+  });
+  Object.values(B).forEach(b=>{
+    if(b.alignTo&&B[b.alignTo]){const t=B[b.alignTo];b.x=t.x+t.w/2-b.w/2;}
+    if(b.outside&&b.centerOn&&B[b.centerOn]){const t=B[b.centerOn];b.x=t.x+t.w/2-b.w/2;}
+  });
+  const hasBelow=(spec.edges||[]).some(e=>e.route==='ZB');
+  const chBelow=y0+zoneH+18;
+  return {B,y0,zoneH,chBelow,H:hasBelow?chBelow+16:y0+zoneH+14};
+}
+
+function edgeGeom(e,B,L){
+  if(e.pts)return e.pts;
+  const f=B[e.from],t=B[e.to];
+  const fr=f.x+f.w,fx=f.x,fb=f.y+f.h,fy=f.y,fcx=f.x+f.w/2,fcy=f.y+f.h/2;
+  const tr=t.x+t.w,tx=t.x,tb=t.y+t.h,ty=t.y,tcx=t.x+t.w/2,tcy=t.y+t.h/2;
+  const dy=e.dy||0;let pts;
+  switch(e.route){
+    case 'H': pts=[[fr+4,fcy+dy],[tx-9,tcy+dy]];break;
+    case 'HL':pts=[[fx-4,fcy+dy],[tr+9,tcy+dy]];break;
+    case 'V': {const x=e.x??tcx;pts=[[x,fb+4],[x,ty-9]];break;}
+    case 'VU':{const x=e.x??tcx;pts=[[x,fy-4],[x,tb+9]];break;}
+    case 'DH':{const sx=e.sx??fcx;pts=[[sx,fb+4],[sx,tcy],[tx-9,tcy]];break;}
+    case 'ZB':{const sx=e.sx??fcx,txx=e.tx??tcx;
+      pts=[[sx,fb+4],[sx,L.chBelow],[txx,L.chBelow],[txx,tb+9]];break;}
+    case 'ZD':{const sx=e.sx??fcx,txx=e.tx??tcx,my=fb+16;
+      pts=[[sx,fb+4],[sx,my],[txx,my],[txx,ty-9]];break;}
+    case 'LT':{const txx=e.tx??tcx;pts=[[fr+4,fcy],[txx,fcy],[txx,ty-9]];break;}
+  }
+  return pts;
+}
+const ptsToPath=p=>'M'+p.map(q=>q[0]+' '+q[1]).join(' L');
+function longestSeg(pts){let best=0,bi=0;
+  for(let i=0;i<pts.length-1;i++){const d=Math.abs(pts[i+1][0]-pts[i][0])+Math.abs(pts[i+1][1]-pts[i][1]);
+    if(d>best){best=d;bi=i;}}
+  return [pts[bi],pts[bi+1]];}
+function seamCross(pts){ // horizontal segment spanning the seam band
+  for(let i=0;i<pts.length-1;i++){const [a,b]=[pts[i],pts[i+1]];
+    if(a[1]===b[1]&&Math.min(a[0],b[0])<S.seam.x&&Math.max(a[0],b[0])>S.seam.x+S.seam.w)return a[1];}
+  return null;}
+
+/* ═══════════════════ shared component annotations ═══════════════════ */
+const ANN={
+site:{t:'Next.js public site',r:'Vercel · cpt1',m:'The anonymous marketing surface. It holds <b>zero database connections</b> by design — pages are pre-built (ISR) and served from the edge, and anything dynamic must cross the seam through an explicit, named path. If it can’t be reached from here on this diagram, it can’t happen in production.'},
+lms:{t:'TanStack Start LMS',r:'AWS af-south-1 · in-VPC',m:'The operational application — Better-Auth identity, pg-boss jobs, and the only component with credentials for the <code>public</code> schema. Everything the outside world needs from <code>public</code> passes through an endpoint the LMS chooses to expose: the seam API.'},
+api:{t:'LMS seam API',r:'in-VPC · public JSON endpoint',m:'A thin, versioned read surface the LMS exposes for the site: price, next intake, seats left. It is a deliberate contract — rate-limited, server-authenticated, zod-validated — not an accidental hole in the VPC.'},
+cms:{t:'Directus',r:'self-hosted · in-VPC',m:'The content editor’s tool. Its database role reaches <b>only</b> the <code>cms</code> and <code>directus</code> schemas — <code>public</code> is structurally invisible to it, so no editing mistake can touch operational data. Publishing here is what triggers the site’s revalidation.'},
+rds:{t:'RDS PostgreSQL 16',r:'VPC-private (ADR-005)',m:'One database, three schemas: <code>public</code> (67 operational tables), <code>cms</code> (7 content tables), <code>directus</code> (CMS internals). It has no public address — every arrow that tries to reach it from the Vercel zone dies at the VPC boundary, which is the founding constraint of this whole document.'},
+cache:{t:'Next.js Data Cache',r:'Vercel · per-fetch revalidate',m:'A cache for the facts fetch made during a render, held on the Vercel side of the seam. Inside the revalidate window the fetch is answered without AWS being involved. Past it, time-based revalidation serves the stale value and refreshes in the background, so origin latency and short origin outages stay off the reader path.'},
+boss:{t:'pg-boss',r:'job queue inside Postgres',m:'Jobs are rows; workers poll and claim them with SKIP LOCKED, optionally woken early through LISTEN/NOTIFY. It is the machinery that would push fact snapshots (B4) or fire change events (F3/F4) — and it doesn’t exist yet, which is why options that presuppose it are futures, not starting points.'},
+qr:{t:'QR on the certificate',r:'printed · near-permanent',m:'Whatever URL is printed here is fixed the day the certificate ships — paper doesn’t redeploy. That permanence is the entire weight behind decision E: the printed origin must be the one you’re willing to keep forever.'},
+form:{t:'Enquiry form',r:'rendered by the site',m:'The public lead-capture form. It mints the v4.8 idempotency key <b>once per submission attempt</b> and holds it across retries, so a double-click or a flaky connection can never create two rows.'},
+sa:{t:'Server Action',r:'Vercel function · transit only',m:'Receives the native form POST — no client JS required, no CORS involved — and forwards payload + key server-to-server across the seam. It must be provably <b>transit-only</b>: no body logging, no persistence, PII in memory for milliseconds.'},
+ep:{t:'LMS inquiries endpoint',r:'in-VPC · the keyed insert',m:'Validates, rate-limits, and performs the insert with the unique idempotency key. On 23505 it fetches and returns the existing row — the duplicate-as-success echo the form’s UX contract depends on.'},
+auth:{t:'app. · Better-Auth',r:'sessions live here only',m:'All eight roles authenticate on the app origin. The session cookie is scoped to <code>app.abethuskills.co.za</code> and never exists on the marketing origin — the site cannot leak or mishandle a session it never holds.'},
+ck:{t:'Parent-domain cookie',r:'.abethuskills.co.za',m:'One session cookie readable by <b>both</b> origins. That is the feature and the flaw in one: marketing pages can greet you by name, and every request to either origin now carries an authenticated credential an attacker can try to ride.'},
+sess:{t:'app. session',r:'Better-Auth · unchanged',m:'The session is created and held on the app origin exactly as in D1 — D3 changes only where the login <i>form</i> renders, not where the session lives.'},
+ver:{t:'site /verify/{token}',r:'indexable · authority domain',m:'The public verification page on the brand domain. It carries EducationalOccupationalCredential JSON-LD, so credential rich results — and their SEO authority — accrue to the domain that does all the ranking work.'},
+read:{t:'Masked LMS read',r:'token-keyed · rate-limited',m:'An endpoint that accepts only a verify token and returns only the maskable fields — learner name partially redacted, course, date, validity. No enumeration, no PII beyond what a paper certificate already shows.'},
+sqs:{t:'SQS',r:'AWS regional · outside the VPC',m:'A durable managed queue. It buys survival through LMS downtime at the cost of asynchrony — the form can no longer be told “here is your row”, only “accepted” — and it splits idempotency across two components.'},
+wk:{t:'LMS worker',r:'queue consumer · in-VPC',m:'Drains the queue and performs the keyed insert. The unique constraint still guarantees one row — but the guarantee is now enforced a step away from the user, after the response has already been sent.'},
+chg:{t:'Fact mutation',r:'any price/cohort change',m:'A staff edit that changes a fact the marketing site displays — new price, new intake, seat adjustment. In the event-driven options this is what fires the pg-boss job.'},
+};
+
+const DETAIL={"site": {"down": "Serving cached pages has no runtime dependency on AWS. With the seam unreachable, pages keep serving their last successful render.", "code": {"lang": "ts", "file": "app/courses/[slug]/page.tsx", "src": "export default async function Page({ params }: Props) {\n  const { slug } = await params\n  const copy = await getCourseCopy(slug)\n  const facts = await getCourseFacts(slug)\n  const ld = courseJsonLd(copy, facts)\n  return <CourseView copy={copy} facts={facts} ld={ld} />\n}", "notes": [{"l": [3, 3], "c": "--cms", "t": "Marketing copy from Directus. Runs at build time and after a publish invalidates the route."}, {"l": [4, 4], "c": "--amber", "t": "Operational facts from the LMS, read through the data cache. The only line here that can cross the seam at request time."}, {"l": [5, 6], "c": "--ok", "t": "The JSON-LD and the visible price are built from the <b>same</b> facts object, which is what keeps SERP and page in step."}]}}, "lms": {"down": "Staff and learners lose the app. The public site keeps serving cached pages; fact refreshes and enquiry submissions fail until it returns.", "open": "The compute target needs confirming. AWS App Runner is not offered in af-south-1 and stopped accepting new customers on 30 April 2026. ECS on Fargate is available in the region."}, "api": {"down": "Cached facts keep serving. A refresh that fails leaves the previous value in place rather than emptying the slot.", "code": {"lang": "ts", "file": "lms: seam/facts.ts", "src": "export async function courseFacts(req: Request) {\n  assertSeamAuth(req)\n  const slug = new URL(req.url).searchParams.get('course')\n  const { rows } = await pool.query(FACTS_SQL, [slug])\n  return Response.json(factsSchema.parse(rows[0]))\n}", "notes": [{"l": [2, 2], "c": "--blocked", "t": "Server-to-server secret. The endpoint is public on the network and private by contract."}, {"l": [4, 4], "c": "--lms", "t": "A parameterised read on the LMS\u2019s own pool. The site never holds a connection."}, {"l": [5, 5], "c": "--num", "t": "The zod schema from the shared <code>seam-contract</code> package, enforced on the way out."}]}}, "cache": {"down": "It degrades in one direction only: with the LMS unreachable, entries stop refreshing and the last good values keep serving.", "code": {"lang": "ts", "file": "site: lib/facts.ts", "src": "export async function getCourseFacts(slug: string) {\n  const url = `${SEAM_URL}/facts?course=${slug}`\n  const res = await fetch(url, {\n    headers: seamHeaders(),\n    next: { revalidate: 60, tags: [`facts:${slug}`] },\n  })\n  return factsSchema.parse(await res.json())\n}", "notes": [{"l": [5, 5], "c": "--amber", "t": "<b>revalidate: 60</b> is the seats tier. Inside the window the fetch never leaves Vercel; past it the stale value is served while a refresh runs."}, {"l": [5, 5], "c": "--lms", "t": "The tag is what an event-driven purge (F3, F4) would target later. It costs nothing to set now."}, {"l": [7, 7], "c": "--num", "t": "The same schema the LMS serialised with, checked again on arrival."}]}}, "cms": {"down": "Publishing pauses. Cached pages keep serving, and nothing on the reader path calls Directus.", "code": {"lang": "json", "file": "Directus Flow: on publish", "src": "{\n  \"trigger\": \"event\",\n  \"scope\": [\"items.update\"],\n  \"collections\": [\"pages\", \"courses\"],\n  \"operation\": {\n    \"type\": \"request\",\n    \"method\": \"POST\",\n    \"url\": \"https://abethuskills.co.za/api/revalidate\",\n    \"headers\": { \"x-seam-secret\": \"{{$env.SEAM_SECRET}}\" },\n    \"body\": { \"path\": \"/courses/{{$trigger.payload.slug}}\" }\n  }\n}", "notes": [{"l": [3, 4], "c": "--cms", "t": "Fires on an update to a published collection, not on every keystroke in the editor."}, {"l": [8, 9], "c": "--amber", "t": "The one runtime signal that crosses the seam from the AWS side, authenticated with a shared secret."}, {"l": [10, 10], "c": "--site", "t": "The payload names a path and carries no content."}]}}, "rds": {"down": "Everything dynamic stops: the LMS, Directus, and any seam read that misses the cache. The static site keeps serving what it already rendered.", "code": {"lang": "sql", "file": "roles.sql", "src": "REVOKE ALL ON SCHEMA public FROM PUBLIC;\nGRANT USAGE ON SCHEMA cms, directus TO directus_app;\nGRANT ALL ON ALL TABLES IN SCHEMA cms, directus\n  TO directus_app;\nGRANT USAGE ON SCHEMA public TO lms_app;", "notes": [{"l": [1, 1], "c": "--blocked", "t": "Removes the access every role inherits to the <code>public</code> schema by default."}, {"l": [2, 4], "c": "--cms", "t": "The Directus role sees two schemas. The operational one is not hidden from it by convention; it is unreachable."}, {"l": [5, 5], "c": "--lms", "t": "The LMS role is the only one granted into <code>public</code>."}]}}, "boss": {"down": "Jobs wait as rows and run when a worker returns. Nothing is lost; everything downstream of the job is late.", "code": {"lang": "ts", "file": "lms: jobs/facts.ts", "src": "await boss.createQueue('facts.changed')\nawait boss.send('facts.changed', { courseId })\n\nawait boss.work('facts.changed', async ([job]) => {\n  await notifySite(job.data.courseId)\n})", "notes": [{"l": [2, 2], "c": "--lms", "t": "Enqueueing is an insert into a Postgres table, so it can commit or roll back with the change that caused it."}, {"l": [4, 4], "c": "--amber", "t": "Workers poll and claim rows with <code>SKIP LOCKED</code>. The handler receives an array of jobs."}, {"l": [5, 5], "c": "--site", "t": "The seam crossing in F3 and F4: a call to the site\u2019s revalidation endpoint."}]}}, "form": {"down": "With JavaScript unavailable the form still posts natively.", "open": "On a statically rendered page the key cannot be baked into the HTML, because every visitor would receive the same one. It is minted in the browser after load. A submission with JavaScript unavailable therefore arrives without a key, and the Server Action has to mint one or derive it from the payload.", "code": {"lang": "html", "file": "site: EnquiryForm.tsx", "src": "<form action={submitInquiry}>\n  <input type=\"hidden\" name=\"key\" value={key} />\n  <input name=\"name\" required />\n  <input name=\"phone\" type=\"tel\" required />\n  <button type=\"submit\">Send enquiry</button>\n</form>", "notes": [{"l": [1, 1], "c": "--site", "t": "A Server Action as the form target: a same-origin POST that needs no client code to submit."}, {"l": [2, 2], "c": "--amber", "t": "The idempotency key travels as a hidden field and stays the same across retries of this submission."}]}}, "sa": {"down": "The form reports an error and keeps its key, so the retry is safe.", "code": {"lang": "ts", "file": "site: app/actions/inquiry.ts", "src": "'use server'\n\nexport async function submitInquiry(form: FormData) {\n  const body = inquirySchema.parse(Object.fromEntries(form))\n  const res = await fetch(`${SEAM_URL}/inquiries`, {\n    method: 'POST',\n    headers: seamHeaders(),\n    body: JSON.stringify(body),\n    cache: 'no-store',\n  })\n  return res.json()\n}", "notes": [{"l": [4, 4], "c": "--num", "t": "Validated against the shared schema, UTM fields included, before anything leaves Vercel."}, {"l": [5, 10], "c": "--amber", "t": "The single seam crossing. Nothing is written or logged on this side; the payload exists here only for the length of the call."}, {"l": [11, 11], "c": "--lms", "t": "Whatever the LMS answers, including the echoed row on a duplicate, goes straight back to the form."}]}}, "ep": {"down": "Submissions fail visibly at the form. Nothing is half-written: the insert either landed or it did not.", "code": {"lang": "ts", "file": "lms: seam/inquiries.ts", "src": "try {\n  const row = await insertInquiry(body)\n  return Response.json(row, { status: 201 })\n} catch (err) {\n  if (!isUniqueViolation(err)) throw err\n  const row = await findByKey(body.key)\n  return Response.json(row, { status: 200 })\n}", "notes": [{"l": [2, 3], "c": "--lms", "t": "First arrival: the row is inserted under a unique constraint on the idempotency key."}, {"l": [5, 5], "c": "--blocked", "t": "A retry collides. <code>isUniqueViolation</code> checks for Postgres error 23505; anything else is a real failure."}, {"l": [6, 7], "c": "--ok", "t": "The duplicate is answered with the row that already exists, so the form sees success either way."}]}}, "auth": {"down": "Nobody can sign in. The marketing site is unaffected, because it never held a session.", "code": {"lang": "http", "out": true, "file": "app.abethuskills.co.za: sign-in response", "src": "HTTP/1.1 302 Found\nLocation: /dashboard\nSet-Cookie: session_token=<opaque>; Path=/;\n  HttpOnly; Secure; SameSite=Lax", "notes": [{"l": [3, 4], "c": "--lms", "t": "No <b>Domain</b> attribute. The cookie is host-only, so the browser sends it to the app origin and nowhere else."}]}}, "ck": {"down": "A flaw on either origin exposes the session that both rely on.", "code": {"lang": "http", "out": true, "file": "sign-in response under D2", "src": "HTTP/1.1 302 Found\nSet-Cookie: session_token=<opaque>; Path=/;\n  Domain=abethuskills.co.za;\n  HttpOnly; Secure; SameSite=Lax", "notes": [{"l": [3, 3], "c": "--blocked", "t": "One attribute is the whole difference from D1. With <b>Domain</b> set, the browser attaches the cookie to the apex and every subdomain."}]}}, "sess": {"down": "As D1: sign-in fails and the marketing pages keep serving."}, "ver": {"down": "The page depends on the masked read. With the LMS down it can render, and cannot confirm a certificate.", "code": {"lang": "json", "out": true, "file": "JSON-LD on /verify/{token}", "src": "{\n  \"@context\": \"https://schema.org\",\n  \"@type\": \"EducationalOccupationalCredential\",\n  \"name\": \"Forklift Operator Certificate\",\n  \"credentialCategory\": \"certificate\",\n  \"recognizedBy\": {\n    \"@type\": \"Organization\",\n    \"name\": \"Abethu Skills\"\n  }\n}", "notes": [{"l": [3, 3], "c": "--ok", "t": "The schema.org type for a certificate. Whichever domain serves this block is the one the credential result is credited to."}]}}, "read": {"down": "Verification is unavailable until the LMS returns. Nothing is cached, by design: a revoked certificate must not keep verifying.", "code": {"lang": "json", "out": true, "file": "response to a token lookup", "src": "{\n  \"valid\": true,\n  \"learner\": \"T**** M*****\",\n  \"course\": \"Forklift Operator\",\n  \"issued\": \"2026-03-14\"\n}", "notes": [{"l": [3, 3], "c": "--blocked", "t": "The learner name is redacted before it leaves the VPC."}, {"l": [2, 5], "c": "--lms", "t": "Four fields, none beyond what the paper certificate already shows."}]}}, "sqs": {"down": "SQS itself is a regional managed service. The practical failure is a consumer that stops draining: messages wait, up to the queue\u2019s retention period.", "code": {"lang": "ts", "file": "site: app/actions/inquiry.ts under C4", "src": "await sqs.send(new SendMessageCommand({\n  QueueUrl: INQUIRIES_QUEUE_URL,\n  MessageBody: JSON.stringify(body),\n}))\nreturn { status: 'accepted' }", "notes": [{"l": [1, 4], "c": "--infra", "t": "The payload, PII included, is now at rest in a third system until the worker deletes it."}, {"l": [5, 5], "c": "--blocked", "t": "The only truthful reply. The row does not exist yet, so there is nothing to echo."}]}}, "wk": {"down": "Messages accumulate in the queue and are processed on recovery. Enquiries are late, not lost."}, "chg": {"down": "Not a component that fails; it is the event the other boxes react to."}, "qr": {"down": "Paper cannot fail. The address printed on it can, which is the whole of decision E."}, "s3": {"down": "Certificate PDFs and CMS media stop resolving. Pages render without their images; verification is unaffected."}, "vis": {}, "stf": {}};
+/* ═══════════════════ component modal ═══════════════════ */
+const hx=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const allBoxes=s=>(s.v||[]).concat(s.a||[],s.outside||[],s.boxes||[]);
+const KVAR={site:'--site',lms:'--lms',cms:'--cms',mut:'--infra'};
+const USES={};
+const roleChips=r=>String(r||'').split(' \u00b7 ').filter(Boolean).map(x=>`<span class="rchip">${x}</span>`).join('');
+
+/* syntax painter */
+const RX={
+ ts:/(\/\/.*$)|(`(?:\\.|[^`\\])*`|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*")|\b(\d+(?:\.\d+)?)\b|\b(const|let|function|async|export|default|import|from|new)\b|\b(if|else|return|await|try|catch|throw)\b|\b(true|false|null|undefined)\b|\b([A-Z][A-Z0-9_]{2,})\b|\b([A-Z][A-Za-z0-9]*)\b|(?<=\.)([A-Za-z_$][\w$]*)(?=\()|\b([A-Za-z_$][\w$]*)(?=\()|(?<=\.)([A-Za-z_$][\w$]*)|\b([A-Za-z_$][\w$]*)(?=\s*:)|([{}()[\];,.:=<>!+\-*\/?&|]+)/g,
+ json:/("(?:\\.|[^"\\])*")(?=\s*:)|("(?:\\.|[^"\\])*")|\b(\d+(?:\.\d+)?)\b|\b(true|false|null)\b|([{}[\],:]+)/g,
+ sql:/(--.*$)|('(?:''|[^'])*')|(\$\d+)|\b(\d+)\b|\b(INSERT|INTO|VALUES|ON|CONFLICT|DO|NOTHING|RETURNING|SELECT|FROM|WHERE|GRANT|REVOKE|USAGE|ALL|SCHEMA|TABLES|IN|TO|PUBLIC)\b|([(),;.*=]+)/g,
+ html:/(?<=<\/?)([A-Za-z][\w-]*)|([\w-]+)(?==)|("[^"]*")|(\{[^}]*\})|([<>\/=]+)/g,
+};
+const TK={ts:[0,'cm','str','num','decl','ctrl','lit','cst','typ','mth','fn','prop','prop','pun'],
+ json:[0,'prop','str','num','lit','pun'],sql:[0,'cm','str','cst','num','decl','pun'],html:[0,'decl','prop','str','cst','pun']};
+function hlLine(line,lang){
+  if(lang==='http'){
+    const m=line.match(/^([\w-]+)(:)(.*)$/);
+    if(m)return `<span class="tk-prop">${hx(m[1])}</span><span class="tk-pun">:</span><span class="tk-str">${hx(m[3])}</span>`;
+    return `<span class="${/^\s/.test(line)?'tk-str':'tk-ctrl'}">${hx(line)}</span>`;}
+  const rx=RX[lang],cl=TK[lang];let out='',last=0,m;rx.lastIndex=0;
+  while((m=rx.exec(line))){
+    if(m[0]===''){rx.lastIndex++;continue;}
+    out+=hx(line.slice(last,m.index));let gi=1;while(gi<m.length&&m[gi]===undefined)gi++;
+    out+=`<span class="tk-${cl[gi]}">${hx(m[0])}</span>`;last=m.index+m[0].length;}
+  return out+hx(line.slice(last));
+}
+function codePane(c){
+  const lines=c.src.split('\n'),lc={};
+  (c.notes||[]).forEach(n=>{for(let i=n.l[0];i<=n.l[1];i++)lc[i]=n.c;});
+  return `<div class="cwrap"><div class="cpane${c.out?' out':''}" data-notag>
+    <div class="chead"><span class="cfile">${c.file}</span><span>${c.out?'captured shape':'sketch, names illustrative'}</span></div>
+    ${lines.map((ln,i)=>`<div class="cl${lc[i+1]?' lit':''}"${lc[i+1]?` style="--lc:var(${lc[i+1]})"`:''}><span class="lno">${c.out?'':i+1}</span><span class="lc">${hlLine(ln,c.lang)||' '}</span></div>`).join('')}
+    </div><ol class="cnotes">${(c.notes||[]).map(n=>`<li style="--lc:var(${n.c})"><span class="lref">${n.l[0]===n.l[1]?'line '+n.l[0]:'lines '+n.l[0]+'\u2013'+n.l[1]}</span>${n.t}</li>`).join('')}</ol></div>`;
+}
+function edgeRows(spec,b){
+  const find=id=>allBoxes(spec).find(q=>q.id===id)||{label:id};
+  return (spec.edges||[]).filter(e=>e.from===b.id||e.to===b.id).map(e=>{
+    const f=find(e.from),t=find(e.to),zf=zoneOf(spec,e.from),zt=zoneOf(spec,e.to);
+    const sx=(zf==='v'&&zt==='a')||(zf==='a'&&zt==='v');
+    const col=e.kind==='block'?'--blocked':sx?'--seamedge':'--edge';
+    return `<div class="erow">
+      <span class="enode${e.from===b.id?' me':''}" style="--c:var(${KVAR[f.kind]||'--infra'})">${hx(f.label)}</span>
+      <span class="earrow${e.kind==='block'?' blk':''}${e.both?' both':''}" style="--c:var(${col})"></span>
+      <span class="enode${e.to===b.id?' me':''}" style="--c:var(${KVAR[t.kind]||'--infra'})">${hx(t.label)}</span>
+      <div class="emeta"><span class="etag" style="--c:var(${col})">${e.kind==='block'?'blocked at the VPC':sx?'crosses the seam':'stays in-cloud'}</span>
+      <span>${hx(e.lab||VERB[e.kind])}${e.kind==='block'||e.lab?'':' call'}</span></div></div>`;}).join('');
+}
+const MODAL=(function(){
+  const modal=document.getElementById('modal'),panel=modal.querySelector('.mpanel');
+  const body=modal.querySelector('.mbody'),title=document.getElementById('mtitle'),roles=modal.querySelector('.mroles');
+  let trigger=null,after=null;
+  function close(){
+    if(!modal.classList.contains('show'))return;
+    modal.classList.remove('show');modal.setAttribute('aria-hidden','true');
+    if(after)after();after=null;
+    if(trigger&&trigger.focus){try{trigger.focus({preventScroll:true});}catch(e){}}
+    trigger=null;}
+  function open(spec,b,trig,onClose){
+    const key=b.base||b.id,base=ANN[key]||{t:b.label,r:'',m:''},d=DETAIL[key]||{};
+    const kv=KVAR[b.kind]||'--infra',ctx=OPT[spec.title]?spec.title:'the master topology';
+    panel.style.setProperty('--kc','var('+kv+')');
+    title.textContent=base.t;roles.innerHTML=roleChips(base.r);
+    const rows=edgeRows(spec,b),uses=USES[key]||[];
+    body.innerHTML=`<p>${base.m}</p>
+      ${b.note?`<div class="mnote"><span class="nk">Specific to ${ctx}</span>${b.note}</div>`:''}
+      ${d.open?`<div class="mnote open"><span class="nk">Open point</span>${d.open}</div>`:''}
+      <h4 data-notag>Connections in ${ctx}</h4>${rows?`<div>${rows}</div>`:'<p class="noconn">No arrow touches this box here. It is drawn to show what the option leaves out.</p>'}
+      ${d.down?`<h4>When it is unavailable</h4><p>${d.down}</p>`:''}
+      ${d.code?`<h4>In code</h4>${codePane(d.code)}`:''}
+      <h4>Appears in</h4><div class="uses">${uses.length?uses.join(' '):'The master topology only.'}</div>`;
+    tagInto(body);
+    trigger=trig;after=onClose||null;
+    modal.classList.add('show');modal.setAttribute('aria-hidden','false');panel.scrollTop=0;
+    const cb=document.getElementById('mclose');if(cb.focus)cb.focus({preventScroll:true});}
+  modal.addEventListener('click',e=>{if(e.target===modal)close();});
+  document.getElementById('mclose').addEventListener('click',close);
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape')return;
+    if(POP.isOpen())POP.close();else close();});
+  return {open,close};
+})();
+
+/* ═══════════════════ render ═══════════════════ */
+const EDGEW={read:2,write:2,int:1.4,link:1.7,block:1.6};
+const VERB={read:'read',write:'write',int:'internal',link:'link',block:'blocked'};
+function mkMarkers(defs,hid){
+  const mk=(id,d,fill,col)=>{
+    const m=el('marker',{id:`${hid}-${id}`,viewBox:'0 0 10 10',refX:'7',refY:'5',markerWidth:'6.4',markerHeight:'6.4',orient:'auto-start-reverse'});
+    m.appendChild(el('path',{d,fill:fill?`var(${col})`:'none',stroke:`var(${col})`,'stroke-width':'1.7','stroke-linecap':'round','stroke-linejoin':'round'}));
+    defs.appendChild(m);};
+  mk('r-n','M2 1 L8 5 L2 9',false,'--edge');   mk('r-s','M2 1 L8 5 L2 9',false,'--seamedge');
+  mk('w-n','M1.5 1 L8.5 5 L1.5 9 Z',true,'--edge'); mk('w-s','M1.5 1 L8.5 5 L1.5 9 Z',true,'--seamedge');
+}
+function drawBox(g,b,gid){
+  const grp=el('g',{class:'ebox gstep',tabindex:'0',role:'button','data-gid':gid});
+  grp.appendChild(el('rect',{x:b.x,y:b.y,width:b.w,height:b.h,rx:10,class:'nb '+(KIND[b.kind]||'c-mut')}));
+  const cy=b.sub?b.y+b.h/2-7:b.chips?b.y+17:b.y+b.h/2;
+  const t=el('text',{x:b.x+b.w/2,y:cy,'text-anchor':'middle','dominant-baseline':'central',class:'blab'});
+  t.textContent=b.label;grp.appendChild(t);
+  if(b.sub){const s=el('text',{x:b.x+b.w/2,y:b.y+b.h/2+10,'text-anchor':'middle','dominant-baseline':'central',class:'bsub'});
+    s.textContent=b.sub;grp.appendChild(s);}
+  if(b.chips){const total=b.chips.reduce((a,c)=>a+Math.round(tw(c,9.5))+16,0)+(b.chips.length-1)*7;
+    let cx=b.x+b.w/2-total/2;
+    b.chips.forEach(c=>{const cw=Math.round(tw(c,9.5))+16;
+      grp.appendChild(el('rect',{x:cx,y:b.y+b.h-25,width:cw,height:17,rx:5,class:'nb '+(c.startsWith('public')?'c-lms':'c-cms')}));
+      const ct=el('text',{x:cx+cw/2,y:b.y+b.h-16.5,'text-anchor':'middle','dominant-baseline':'central',class:'chip'});
+      ct.textContent=c;grp.appendChild(ct);cx+=cw+7;});}
+  g.appendChild(grp);return grp;
+}
+function zoneOf(spec,id){
+  if(spec.manual){const b=(spec.boxes||[]).find(x=>x.id===id);return b?(b.zone||'o'):'o';}
+  if((spec.v||[]).some(b=>b.id===id))return 'v';
+  if((spec.a||[]).some(b=>b.id===id))return 'a';
+  return 'o';
+}
+function render(mount,spec,opt){
+  const host=typeof mount==='string'?document.getElementById(mount):mount;
+  if(host._timer){clearInterval(host._timer);host._timer=null;}
+  host.innerHTML='';
+  const L=layout(spec);
+  const rec={id:host.id,title:spec.title||'',H:L.H,boxes:[],labels:[],edges:[]};
+  const svg=el('svg',{viewBox:`0 0 ${S.W} ${L.H}`,role:'img'});
+  const ti=el('title',{});ti.textContent=spec.title||'diagram';svg.appendChild(ti);
+  const defs=el('defs',{});mkMarkers(defs,host.id);
+  const pat=el('pattern',{id:host.id+'-hatch',width:'7',height:'7',patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'});
+  pat.appendChild(el('line',{x1:'0',y1:'0',x2:'0',y2:'7',stroke:'var(--seam-hatch)','stroke-width':'1.4'}));
+  defs.appendChild(pat);svg.appendChild(defs);
+  // zones + seam
+  svg.appendChild(el('rect',{x:S.seam.x,y:L.y0,width:S.seam.w,height:L.zoneH,fill:'var(--seam-tint)',rx:8}));
+  svg.appendChild(el('rect',{x:S.seam.x,y:L.y0,width:S.seam.w,height:L.zoneH,fill:`url(#${host.id}-hatch)`,rx:8}));
+  svg.appendChild(el('rect',{x:S.ZV.x,y:L.y0,width:S.ZV.w,height:L.zoneH,rx:14,class:'zone'}));
+  svg.appendChild(el('rect',{x:S.ZA.x,y:L.y0,width:S.ZA.w,height:L.zoneH,rx:14,class:'zone'}));
+  const z1=el('text',{x:S.ZV.x+16,y:L.y0+22,class:'zlab'});z1.textContent='Vercel cpt1';svg.appendChild(z1);
+  const z2=el('text',{x:S.ZA.x+16,y:L.y0+22,class:'zlab'});z2.textContent=spec.awsLabel||'AWS af-south-1 VPC';svg.appendChild(z2);
+  const sl=el('text',{x:S.seam.x+S.seam.w/2,y:L.y0+22,class:'seamlab','text-anchor':'middle'});sl.textContent='SEAM';svg.appendChild(sl);
+  const edgeG=el('g',{}),boxG=el('g',{}),labG=el('g',{});
+  svg.appendChild(edgeG);svg.appendChild(boxG);svg.appendChild(labG);
+  Object.values(L.B).forEach(b=>{drawBox(boxG,b,'b:'+b.id);
+    rec.boxes.push({id:b.id,x:b.x,y:b.y,w:b.w,h:b.h,label:b.label});});
+  (spec.edges||[]).forEach((e,i)=>{
+    const pts=edgeGeom(e,L.B,L),d=ptsToPath(pts);
+    const zf=zoneOf(spec,e.from),zt=zoneOf(spec,e.to);
+    const sx=(zf==='v'&&zt==='a')||(zf==='a'&&zt==='v');
+    const g=el('g',{class:'gstep','data-gid':'e:'+i});
+    const cls=['edge'];
+    if(e.kind==='block')cls.push('blk');else cls.push('march');
+    if(sx&&e.kind!=='block')cls.push('sx');
+    const p=el('path',{d,class:cls.join(' '),'stroke-width':EDGEW[e.kind]||1.6});
+    if(e.kind!=='block'){
+      const mk=(e.kind==='write')?'w':'r';
+      const mc=(sx)?'s':'n';
+      p.setAttribute('marker-end',`url(#${host.id}-${mk}-${mc})`);
+      if(e.both)p.setAttribute('marker-start',`url(#${host.id}-${mk}-${mc})`);
+    }
+    g.appendChild(p);
+    if(e.kind==='block'){
+      const cy=seamCross(pts);
+      if(cy!=null){const mx=S.seam.x+S.seam.w/2;
+        g.appendChild(el('line',{x1:mx-6,y1:cy-6,x2:mx+6,y2:cy+6,stroke:'var(--blocked)','stroke-width':'2'}));
+        g.appendChild(el('line',{x1:mx+6,y1:cy-6,x2:mx-6,y2:cy+6,stroke:'var(--blocked)','stroke-width':'2'}));}
+    }
+    if(e.lab){
+      const [a,b]=longestSeg(pts);let lx,ly,anchor='middle';
+      if(a[1]===b[1]){lx=(a[0]+b[0])/2+(e.lx||0);ly=a[1]+(e.lp==='below'?16:-8)+(e.ly||0);}
+      else{lx=a[0]+(e.lp==='left'?-9:9);anchor=e.lp==='left'?'end':'start';ly=(a[1]+b[1])/2+3+(e.ly||0);}
+      const cls2='elab'+(e.kind==='block'?' bx':sx?' sx':'');
+      const t=el('text',{x:lx,y:ly,'text-anchor':anchor,class:cls2});t.textContent=e.lab;labG.appendChild(t);
+      const lw=tw(e.lab,10);
+      rec.labels.push({text:e.lab,x:anchor==='middle'?lx-lw/2:anchor==='end'?lx-lw:lx,y:ly-8,w:lw,h:10});
+    }
+    const hit=el('path',{d,class:'ehit','data-gid':'e:'+i});g.appendChild(hit);
+    edgeG.appendChild(g);
+    rec.edges.push({pts,kind:e.kind,from:e.from,to:e.to,sx});
+  });
+  const box=document.createElement('div');box.className='svgbox';
+  box.style.aspectRatio=S.W+' / '+((opt&&opt.maxH)||L.H);
+  box.appendChild(svg);host.appendChild(box);
+  window.AUDIT.push(rec);
+  /* top bar: stepper controls and caption, fixed height */
+  const steps=spec.steps||[],n=steps.length;
+  const bar=document.createElement('div');bar.className='stepbar';
+  bar.innerHTML=(n?`<div class="sctl">
+      <button class="sbtn" data-s="r" aria-label="Reset walkthrough" title="Reset">↺</button>
+      <button class="sbtn" data-s="p" aria-label="Previous step" title="Previous">‹</button>
+      <button class="sbtn" data-s="y" aria-label="Play walkthrough" title="Play">▶</button>
+      <button class="sbtn" data-s="n" aria-label="Next step" title="Next">›</button>
+      <span class="sct"></span></div>`:'')+'<div class="scap" aria-live="polite"><div></div></div>';
+  host.insertBefore(bar,box);
+  const cap=bar.querySelector('.scap'),capIn=cap.firstElementChild;
+  const idleCap=(spec.cap||'')+(n?` <span class="shint" data-notag>${n} steps</span>`:'');
+  let st=-1;
+  const q=k=>bar.querySelector(`[data-s="${k}"]`);
+  function stop(){if(host._timer){clearInterval(host._timer);host._timer=null;}
+    if(n){q('y').classList.remove('playing');q('y').textContent='▶';q('y').setAttribute('aria-label','Play walkthrough');}}
+  function apply(){
+    host.querySelectorAll('.gstep').forEach(g=>g.classList.toggle('dimmed',st>=0&&!steps[st].on.includes(g.getAttribute('data-gid'))));
+    cap.classList.toggle('idle',st<0);
+    capIn.innerHTML=st<0?idleCap:steps[st].t;tagInto(capIn);
+    if(n){bar.querySelector('.sct').textContent=`${st+1}/${n}`;
+      q('p').disabled=st<0;q('r').disabled=st<0;q('n').disabled=st>=n-1;}
+  }
+  if(n){
+    q('p').addEventListener('click',()=>{stop();st=Math.max(-1,st-1);apply();});
+    q('n').addEventListener('click',()=>{stop();st=Math.min(n-1,st+1);apply();});
+    q('r').addEventListener('click',()=>{stop();st=-1;apply();});
+    q('y').addEventListener('click',()=>{
+      if(host._timer){stop();return;}
+      if(st>=n-1)st=-1;
+      st++;apply();
+      q('y').classList.add('playing');q('y').textContent='❚❚';q('y').setAttribute('aria-label','Pause walkthrough');
+      host._timer=setInterval(()=>{if(st>=n-1){stop();return;}st++;apply();if(st>=n-1)stop();},4200);});
+  }
+  apply();
+  /* arrow inspector, fixed height */
+  const dock=document.createElement('div');dock.className='dock idle';
+  const idle='<span class="dk"></span><div><p>Every box opens its full breakdown. Every arrow reports here what travels along it, and whether it crosses the seam.</p></div>';
+  dock.innerHTML=idle;
+  function dockEdge(e,sx){
+    const col=e.kind==='block'?'--blocked':sx?'--seamedge':'--edge';
+    dock.classList.remove('idle');
+    dock.innerHTML=`<span class="dk" style="background:var(${col})"></span><div>
+      <h5>${e.lab||VERB[e.kind]}<span class="role">${roleChips(e.kind==='block'?'blocked at the VPC':(sx?'crosses the seam':'in-cloud')+' · '+VERB[e.kind])}</span></h5>
+      <p>${e.info||''}</p></div>`;
+    dock.scrollTop=0;tagInto(dock);
+  }
+  function select(gid){
+    host.querySelectorAll('.gstep').forEach(x=>x.classList.remove('sel'));
+    host.querySelectorAll('.gstep .edge').forEach(x=>x.classList.remove('sel'));
+    if(!gid||gid.startsWith('b:')){dock.classList.add('idle');dock.innerHTML=idle;}
+    if(!gid)return;
+    const g=host.querySelector(`.gstep[data-gid="${gid}"]`);
+    if(!g)return;
+    if(gid.startsWith('b:')){
+      const b=allBoxes(spec).find(x=>x.id===gid.slice(2));
+      if(b){g.classList.add('sel');MODAL.open(spec,b,g,()=>g.classList.remove('sel'));}}
+    else{const e=(spec.edges||[])[+gid.slice(2)];
+      g.querySelector('.edge').classList.add('sel');
+      const zf=zoneOf(spec,e.from),zt=zoneOf(spec,e.to);
+      dockEdge(e,(zf==='v'&&zt==='a')||(zf==='a'&&zt==='v'));}
+  }
+  svg.addEventListener('click',ev=>{
+    const g=ev.target.closest('[data-gid]');
+    select(g?g.getAttribute('data-gid'):null);
+  });
+  svg.addEventListener('keydown',ev=>{
+    if(ev.key==='Enter'||ev.key===' '){const g=ev.target.closest('[data-gid]');
+      if(g){ev.preventDefault();select(g.getAttribute('data-gid'));}}
+  });
+  host.appendChild(dock);
+}
+
+/* ═══════════════════ metric vocabulary ═══════════════════ */
+const MW={lat:{5:'edge-static',4:'one hop',3:'multi-hop',2:'every view crosses'},
+          fresh:{5:'live',4:'seconds–minutes',3:'job cadence',2:'rebuild-bound'},
+          simple:{5:'trivial',4:'plain',3:'some plumbing',2:'real machinery'}};
+
+/* ═══════════════════ decisions ═══════════════════ */
+const bxV=(id,row,label,kind,x={})=>({id,row,label,kind,base:id,...x});
+const bxA=bxV;
+const DECS=[
+{key:'A',title:'Marketing content read path',
+ intro:'How the site gets cms-schema content — hero copy, page sections, SEO meta, media. Directus authors it; the question is how the Next.js site consumes it across the seam.',
+ rec:'A3',recwhy:'<b>A3.</b> Static-speed for readers, seconds-fresh for editors, and the failure mode upgrades from “down” to “stale”. A2 makes Directus a runtime dependency for nothing; A4 taxes editors more as the site grows; A1 cannot exist.',
+ opts:[
+ {id:'A1',verdict:'dead',name:'Direct pg to RDS',
+  how:'Vercel functions open pg connections straight into RDS.cms across the internet — the pattern the wireframes originally assumed.',
+  pros:['<b>Zero new services</b> — no API layer, no webhook, one query language end-to-end.'],
+  cons:['<b>RDS is VPC-private</b> (ADR-005): the connection does not fail, it simply has no route to exist.',
+   'Making it exist would mean a public database endpoint — exposing the whole operational store to serve a content read.',
+   'Vercel’s serverless fan-out would exhaust the default connection limit, roughly 190 on this instance class, in a campaign burst even if the route existed.',
+   'One leaked credential would carry whole-database blast radius, not one schema’s.'],
+  m:{lat:4,fresh:5,simple:2,pii:'—',fail:'blocked by design',seo:'—'},
+  spec:{title:'A1',cap:'The connection dies at the VPC edge — there is no route, not a slow one.',
+   v:[bxV('site',0,'Next.js site','site')],
+   a:[bxA('rds',0,'RDS (cms)','mut',{base:'rds'})],
+   edges:[{from:'site',to:'rds',route:'H',kind:'block',lab:'direct pg',
+     info:'A pg connection attempted from a Vercel function toward a database with no public address. It is not slow, not firewalled-with-exceptions — the route does not exist. ADR-005 is the design, and every “direct pg” option in this document dies on this same line.'}]}},
+ {id:'A2',verdict:'ok',name:'Directus API per request',
+  how:'Every page view server-renders against Directus REST/GraphQL across the seam — classic SSR with a headless CMS.',
+  pros:['Content is <b>always live</b> — an edit is visible on the very next request, no machinery in between.',
+   'There is nothing to build: Directus is already an API server, and SSR against it is the tutorial path.'],
+  cons:['Directus becomes a <b>runtime dependency</b>: if it is down or slow, the marketing site is down or slow with it.',
+   'Every single page view pays a cross-cloud hop for content that changes maybe weekly.',
+   'Directus — an editing tool — must now be scaled and hardened for public marketing traffic.',
+   'TTFB is pinned to the slowest content query on the page, on every view.'],
+  m:{lat:2,fresh:5,simple:4,pii:'none (content only)',fail:'hard — 5xx with Directus',seo:'CWV at risk under load'},
+  spec:{title:'A2',cap:'Live, but every render waits on Directus being up.',
+   v:[bxV('site',0,'Next.js site','site',{note:'Rendering per request here — this box is always awake, and always waiting on the arrow to its right.'})],
+   a:[bxA('cms',0,'Directus','cms'),bxA('rds',0,'RDS (cms)','mut',{base:'rds'})],
+   edges:[{from:'site',to:'cms',route:'H',kind:'read',lab:'REST per render',
+     info:'A synchronous content fetch on every page view. The ~2–10 ms metro hop is fine; the problem is what it couples: marketing uptime and TTFB to an editing tool’s availability and load.'},
+    {from:'cms',to:'rds',route:'H',kind:'int',
+     info:'Directus reading its own schema through its scoped role — ordinary, in-VPC, and not the interesting part of this option.'}]}},
+ {id:'A3',verdict:'rec',name:'ISR + revalidation webhook',
+  how:'Pages pre-build and serve statically. A publish fires a Directus Flow webhook → revalidatePath; the site refetches that one route and goes back to serving static.',
+  pros:['<b>Static-speed TTFB</b> from the cpt1 edge — readers are served files, not renders.',
+   'A Directus outage means <b>stale, not down</b>: cached pages keep serving. The one exposure is a route invalidated just before the outage, whose next render needs Directus.',
+   'Editors still see changes in seconds — the webhook makes publish feel live without being live.',
+   'Reader traffic puts almost no load on Directus: one render per publish, however many readers arrive.'],
+  cons:['The webhook wiring (Directus Flows → revalidate endpoint) must be built, secured and monitored.',
+   'Two freshness paths exist — build-time and revalidation — and both must be understood when a page looks stale.',
+   'Editor preview/draft mode needs its own plumbing; ISR only covers the published path.'],
+  m:{lat:5,fresh:4,simple:3,pii:'none',fail:'stale-not-down',seo:'best-case CWV'},
+  spec:{title:'A3',cap:'Publish → webhook → one route invalidated, then rendered once. Every other request is a static hit.',
+   v:[bxV('site',0,'Site (ISR)','site',{base:'site'})],
+   a:[bxA('cms',0,'Directus','cms'),bxA('rds',0,'RDS (cms)','mut',{base:'rds'})],
+   edges:[{from:'site',to:'cms',route:'H',kind:'read',lab:'refetch after publish only',
+     info:'The content fetch — but off the reader path. It runs at build time and on the first request after a revalidatePath call, so Directus serves one render per publish, not one per visitor.'},
+    {from:'cms',to:'rds',route:'H',kind:'int',info:'Directus reading the cms schema through its scoped role.'},
+    {from:'cms',to:'site',route:'ZB',kind:'write',lab:'publish webhook',
+     info:'The Directus Flow: on publish, POST the changed path to the site’s revalidate endpoint. It carries no content — just “this page changed” — and it is the only runtime signal that crosses the seam in this option.'}],
+   steps:[
+    {on:['b:cms'],t:'An editor hits <b>publish</b> in Directus. Nothing has happened on the reader path yet — the site is still serving the old static page.'},
+    {on:['b:cms','e:2'],t:'Directus Flows fires the webhook across the seam: <code>POST /api/revalidate</code> with the changed path. No content in the payload — just “this page changed”.'},
+    {on:['b:site'],t:'The site runs revalidatePath, which invalidates that one route’s cached render. Nothing is rebuilt yet, and every other page is untouched.'},
+    {on:['b:site','e:0','b:cms'],t:'The next request to that route renders it fresh, fetching the new content from Directus once, and caches the result. Every request after that is a static hit again.'}]}},
+ {id:'A4',verdict:'ok',name:'Full SSG rebuild',
+  how:'Any publish triggers a complete production build; the site is pure SSG with no per-page revalidation.',
+  pros:['The <b>simplest possible mental model</b>: the site is a build artefact, full stop.',
+   'Identical stale-not-down resilience to A3 — a Directus outage just pauses publishing.'],
+  cons:['Rebuild time grows with the page count — 44 courses × locations already makes this minutes, not seconds.',
+   'The editor feedback loop stretches accordingly: publish, then wait out a full CI build to see it.',
+   'Every one-line copy fix burns a full build — wasteful CI churn that A3 avoids for free.'],
+  m:{lat:5,fresh:2,simple:4,pii:'none',fail:'stale-not-down',seo:'best-case CWV'},
+  spec:{title:'A4',cap:'Every publish rebuilds everything — the editor waits out the whole build.',
+   v:[bxV('site',0,'Site (SSG)','site',{base:'site'})],
+   a:[bxA('cms',0,'Directus','cms'),bxA('rds',0,'RDS (cms)','mut',{base:'rds'})],
+   edges:[{from:'site',to:'cms',route:'H',kind:'read',lab:'fetch all at build',
+     info:'The build fetches every page’s content in one pass. Off the reader path, like A3 — but scoped to everything instead of the one page that changed.'},
+    {from:'cms',to:'rds',route:'H',kind:'int',info:'Directus reading the cms schema through its scoped role.'},
+    {from:'cms',to:'site',route:'ZB',kind:'write',lab:'trigger full rebuild',
+     info:'The same webhook slot as A3, aimed at a much blunter instrument: a deploy hook that rebuilds the entire site for any publish.'}]}},
+]},
+
+{key:'B',title:'Live operational facts',
+ intro:'Price, next intake, seats left, counts — public-schema facts the marketing pages display and the Course JSON-LD must carry. Directus can’t serve these; only the LMS can reach public.',
+ rec:'B3',recwhy:'<b>B3.</b> Cache HITs never leave Vercel; a MISS pays one same-metro hop. TTL per fact class does the honest work (price long, seats short), and the LMS is shielded from campaign spikes. B2 couples LMS load to ad spend; B4 blurs the schema boundary; B5 kills the JSON-LD.',
+ opts:[
+ {id:'B1',verdict:'dead',name:'Direct pg to RDS',
+  how:'The A1 shape, pointed at the public schema instead of cms.',
+  pros:['—'],
+  cons:['Blocked at the VPC identically to A1 — and this time the schema it would expose is the operational one.',
+   'Everything wrong with A1, plus lead PII and financials behind the hypothetical public endpoint.'],
+  m:{lat:4,fresh:5,simple:2,pii:'—',fail:'blocked by design',seo:'—'},
+  spec:{title:'B1',cap:'The same corpse as A1 — the boundary forbids it.',
+   v:[bxV('site',0,'Next.js site','site')],
+   a:[bxA('rds',0,'RDS (public)','mut',{base:'rds'})],
+   edges:[{from:'site',to:'rds',route:'H',kind:'block',lab:'direct pg',
+     info:'Identical to A1’s blocked edge — but the target schema here holds inquiries, enrolments and invoices, so the hypothetical exposure is strictly worse.'}]}},
+ {id:'B2',verdict:'ok',name:'LMS read API, uncached',
+  how:'The LMS exposes a thin public JSON endpoint; the site calls it live on every render.',
+  pros:['Numbers are <b>truly live</b> — a seat sold is a seat gone on the very next view.',
+   'One simple code path with no cache semantics to reason about.'],
+  cons:['Marketing traffic becomes LMS load <b>one-to-one</b> — an ad campaign is now a database load test.',
+   'Every view pays the cross-cloud hop, putting a ~+60–120 ms floor under TTFB.',
+   'LMS capacity planning is now coupled to ad spend — two things that should never share a dial.'],
+  m:{lat:2,fresh:5,simple:4,pii:'none (public facts)',fail:'facts 5xx with LMS',seo:'CWV degrades under load'},
+  spec:{title:'B2',cap:'Maximum freshness — and every view is an AWS round-trip.',
+   v:[bxV('site',0,'Next.js site','site')],
+   a:[bxA('api',0,'LMS API','lms'),bxA('rds',0,'RDS (public)','mut',{base:'rds'})],
+   edges:[{from:'site',to:'api',route:'H',kind:'read',lab:'GET facts per view',
+     info:'A synchronous facts fetch on every render, no cache in between. The latency is tolerable; the coupling — marketing traffic arriving as LMS load, view for view — is the real cost.'},
+    {from:'api',to:'rds',route:'H',kind:'int',info:'The seam API querying public through the LMS’s pooled connections.'}]}},
+ {id:'B3',verdict:'rec',name:'LMS read API + Vercel-side cache',
+  how:'The same endpoint, read through a Vercel-side cache with stale-while-revalidate and one TTL tier per fact class.',
+  pros:['A cache <b>HIT is answered on the Vercel side</b> at effectively static speed — the common case never touches AWS.',
+   'SWR hides origin latency entirely: expired entries are served stale instantly while refreshing behind the scenes.',
+   'TTL per fact class is honest pricing: price cached long because it barely changes, seats ~60 s because they do.',
+   'The LMS is shielded from campaign spikes — a thousand concurrent views collapse into one origin refresh.'],
+  cons:['Cache keys and invalidation need discipline — one fetch per fact class, each revalidate window set deliberately.',
+   'A bounded staleness window exists and must be accepted (its size is exactly decision F).',
+   'One more layer whose HIT ratio and behaviour you should observe in production.'],
+  m:{lat:5,fresh:4,simple:3,pii:'none',fail:'serves stale on LMS outage',seo:'JSON-LD carries live price'},
+  spec:{title:'B3',rows:2,cap:'HITs stay on Vercel; a MISS pays one same-metro hop.',
+   v:[bxV('site',0,'Site','site'),bxV('cache',1,'data cache, SWR','mut',{base:'cache'})],
+   a:[bxA('api',1,'LMS API','lms'),bxA('rds',1,'RDS (public)','mut',{base:'rds'})],
+   edges:[{from:'site',to:'cache',route:'V',kind:'int',
+     info:'The render asking its own edge for facts — on the Vercel side, and where the request usually ends.'},
+    {from:'cache',to:'api',route:'H',kind:'read',lab:'on MISS only',
+     info:'The only seam crossing in this option, and it happens on a MISS or expiry — not per view. SWR makes even this invisible: the stale value is served while this refresh runs.'},
+    {from:'api',to:'rds',route:'H',kind:'int',info:'The seam API querying public through the LMS’s pooled connections.'}],
+   steps:[
+    {on:['b:site','e:0','b:cache'],t:'A render asks the edge cache for facts. On a <b>HIT</b> — the overwhelmingly common case — the answer comes from the Vercel side and the request is already over.'},
+    {on:['b:cache','e:1','b:api'],t:'On a MISS or expiry, one same-metro hop (~2–10 ms) crosses the seam to the LMS API.'},
+    {on:['b:api','e:2','b:rds'],t:'The API reads public and answers. The fetch that asked carries a deliberate <code>revalidate</code> window per fact class — price long, seats ~60 s.'},
+    {on:['b:cache','b:site'],t:'From then on SWR does the honest work: expired entries are served stale <i>instantly</i> while a background refresh runs. Campaign spikes hit the cache, not RDS.'}]}},
+ {id:'B4',verdict:'ok',name:'pg-boss pushes facts into cms',
+  how:'A scheduled job snapshots public facts into the cms schema; the site then consumes them like any other content via the A3 path.',
+  pros:['<b>No runtime seam at all</b> — the reader path is pure static content, end to end.',
+   'Facts and copy arrive through one pipeline, one mental model.'],
+  cons:['Operational facts leak into the marketing schema — the ops/marketing boundary v4.17 drew on purpose starts to blur.',
+   'Staleness equals job cadence, and a stalled job means silently wrong numbers with nothing on the request path to notice.',
+   'It presupposes pg-boss and snapshot code that don’t exist yet — real machinery before the first fact renders.',
+   'Every fact now exists twice — in public and in cms — and the copies must be reconciled forever.'],
+  m:{lat:5,fresh:3,simple:2,pii:'none',fail:'stale-not-down',seo:'fine if cadence is tight'},
+  spec:{title:'B4',cap:'Facts become content — no seam at runtime, blurred schemas at rest.',
+   v:[bxV('site',0,'Site (ISR)','site',{base:'site'})],
+   a:[bxA('boss',0,'pg-boss','lms',{base:'boss'}),bxA('cms',0,'cms schema','cms',{base:'cms',
+     note:'Note what changed: this schema now also carries copied operational facts — the boundary drawn in v4.17 is officially blurred.'})],
+   edges:[{from:'boss',to:'cms',route:'H',kind:'write',lab:'snapshot job',lp:'below',ly:22,
+     info:'A scheduled copy of public facts into cms tables. Runs on a cadence; between runs, the marketing site is confidently showing the previous snapshot.'},
+    {from:'cms',to:'site',route:'ZB',kind:'read',lab:'consumed as content (A3)',
+     info:'The site pulls the snapshotted facts exactly as it pulls copy — through the A3 revalidation path. Elegant at runtime; the price was paid at rest.'}]}},
+ {id:'B5',verdict:'ok',name:'Browser fetches client-side',
+  how:'The site ships a static shell; browser JavaScript pulls facts from the LMS API after the page loads.',
+  pros:['The origin does <b>zero work</b> for facts — the reader’s browser does the fetching.',
+   'Trivially incremental: add one fetch call wherever a live number is wanted.'],
+  cons:['Facts never enter the HTML — so the Course <b>JSON-LD ships without a price</b> and rich results die.',
+   'SERP ↔ page parity breaks: Google’s crawler and the visitor can see different numbers.',
+   'Numbers pop in after paint — layout shift on exactly the figures people came to read.',
+   'No-JS visitors and some crawlers simply see gaps.'],
+  m:{lat:4,fresh:5,simple:4,pii:'none',fail:'silent gaps in the page',seo:'harms rich results'},
+  spec:{title:'B5',cap:'Facts arrive after load — the JSON-LD already shipped without them.',
+   v:[bxV('site',0,'Site (shell)','site',{base:'site',
+     note:'The HTML — and the JSON-LD inside it — has already been sent by the time facts arrive. That ordering is the whole problem.'})],
+   a:[bxA('api',0,'LMS API','lms'),bxA('rds',0,'RDS (public)','mut',{base:'rds'})],
+   edges:[{from:'site',to:'api',route:'H',kind:'read',lab:'client-side fetch after load',
+     info:'The fetch runs in the visitor’s browser after hydration. Every fact request is now a public, CORS-exposed browser call — and none of its results ever reach the HTML that SEO reads.'},
+    {from:'api',to:'rds',route:'H',kind:'int',info:'The seam API querying public through the LMS’s pooled connections.'}]}},
+]},
+
+{key:'C',title:'Inquiries write path',
+ intro:'The one public write: the enquiry form, carrying lead PII into public.inquiries under the v4.8 idempotency contract — unique key, duplicate collision answered by echoing the existing row.',
+ rec:'C2',recwhy:'<b>C2.</b> The only shape that keeps the browser on its own origin (no CORS, works without JS), keeps PII at rest strictly in-VPC, and preserves the v4.8 echo end-to-end. C3 trades all that for one hop saved; C4 is durable but breaks the synchronous contract; C1 cannot exist.',
+ opts:[
+ {id:'C1',verdict:'dead',name:'Server Action → direct pg',
+  how:'The form posts to a Server Action which inserts into RDS over pg — the natural Next.js shape, drawn against the wrong database.',
+  pros:['Would be the framework’s one-file happy path: form, action, insert, done.'],
+  cons:['The insert dies at the VPC exactly like A1/B1 — and this arrow carries <b>PII</b>, so “just make RDS public” is even less on the table.',
+   'Even hypothetically, Vercel’s connection fan-out against a default limit of roughly 190 connections rules it out.'],
+  m:{lat:4,fresh:5,simple:4,pii:'—',fail:'blocked by design',seo:'—'},
+  spec:{title:'C1',rows:2,cap:'The framework’s happy path, dead at the boundary.',
+   v:[bxV('form',0,'Enquiry form','site',{base:'form'}),bxV('sa',1,'Server Action','site',{base:'sa'})],
+   a:[bxA('rds',1,'RDS (inquiries)','mut',{base:'rds'})],
+   edges:[{from:'form',to:'sa',route:'V',kind:'int',
+     info:'The native form POST — the half of this option that survives into C2 unchanged.'},
+    {from:'sa',to:'rds',route:'H',kind:'block',lab:'insert',
+     info:'A pg insert from outside the VPC. Same dead route as A1 — except this one is carrying a person’s name, phone and email, which is why no “open it up” workaround gets entertained.'}]}},
+ {id:'C2',verdict:'rec',name:'Server Action forwards to LMS',
+  how:'Native form POST → Server Action (same origin) → server-to-server forward with the idempotency key → keyed insert in-VPC, 23505 echoed as success.',
+  pros:['The browser never leaves its own origin: <b>no CORS surface</b>, no preflight, nothing cross-origin to defend.',
+   'A native form POST means <b>progressive enhancement</b> holds — the form works with JavaScript disabled.',
+   'PII comes to <b>rest only in-VPC</b>; the Vercel hop is transit-only, milliseconds in memory, nothing logged.',
+   'The v4.8 echo survives end-to-end: retries collide on the key and get the identical existing row back.',
+   'The seam call is server-to-server — authenticated with a proper secret, invisible to the browser.'],
+  cons:['Two components share the write path, so tracing a failed submission spans Vercel logs and LMS logs.',
+   'The transit-only property is a discipline, not a default — body logging must be provably off and stay off.',
+   'One extra hop of latency on submit (immaterial next to a human filling a form).'],
+  m:{lat:4,fresh:5,simple:3,pii:'rests in-VPC only',fail:'form errors clearly; retry-safe',seo:'n/a'},
+  spec:{title:'C2',rows:2,cap:'Same-origin in the browser; one authenticated server-to-server crossing; PII rests in-VPC.',
+   v:[bxV('form',0,'Enquiry form','site',{base:'form'}),bxV('sa',1,'Server Action','site',{base:'sa'})],
+   a:[bxA('ep',1,'LMS endpoint','lms',{base:'ep'}),bxA('rds',1,'RDS (inquiries)','mut',{base:'rds'})],
+   edges:[{from:'form',to:'sa',route:'V',kind:'int',lab:'native POST',
+     info:'A plain same-origin form submission — the browser’s oldest trick. No CORS, no preflight, no client JS required. Everything nicer is layered on top, not load-bearing.'},
+    {from:'sa',to:'ep',route:'H',kind:'write',lab:'forward + key',
+     info:'The one seam crossing: payload plus idempotency key, server-to-server, authenticated with a seam secret. The Server Action stores nothing and logs no body — PII transits Vercel memory for milliseconds.'},
+    {from:'ep',to:'rds',route:'H',kind:'int',
+     info:'The keyed insert. On a duplicate the unique constraint fires 23505, the endpoint fetches the existing row, and answers success with it — the echo the form’s UX depends on.'}],
+   steps:[
+    {on:['b:form'],t:'The form mints the <b>idempotency key</b> — once — and re-sends that same key on every retry of this submission.'},
+    {on:['b:form','e:0','b:sa'],t:'Submit is a native form POST to the Server Action on the same origin: no CORS, no preflight, and it works with JavaScript disabled.'},
+    {on:['b:sa','e:1','b:ep'],t:'The Server Action forwards payload + key server-to-server with seam auth. It stores nothing and logs no body — PII is in Vercel memory for milliseconds, in transit.'},
+    {on:['b:ep','e:2','b:rds'],t:'The endpoint validates, rate-limits, and performs the keyed insert. The row — and the PII — comes to rest only inside the VPC.'},
+    {on:['b:ep','b:sa','b:form'],t:'A retry collides on the unique key: <b>23505</b> is caught in-VPC and the existing row is echoed back as success. Double-click, flaky signal, impatient user — one row, identical response, every time.'}]}},
+ {id:'C3',verdict:'ok',name:'Browser posts to LMS directly',
+  how:'The form’s JavaScript POSTs straight to the LMS inquiries endpoint cross-origin; Vercel serves only the static page.',
+  pros:['One hop fewer — the payload goes browser-to-VPC without touching a Vercel function.',
+   'PII never transits Vercel memory at all, even in passing.'],
+  cons:['A <b>public cross-origin write endpoint</b>: CORS allowlists, preflight handling, and browser-facing rate limiting — a whole defended surface bought to skip one internal hop.',
+   'The POST itself now requires client JavaScript — progressive enhancement is gone by construction.',
+   'Bot defence moves fully browser-side, the environment where it is weakest.'],
+  m:{lat:5,fresh:5,simple:3,pii:'rests in-VPC only',fail:'browser-visible errors',seo:'n/a'},
+  spec:{title:'C3',rows:2,cap:'One hop saved; a public cross-origin write surface bought.',
+   v:[bxV('site',0,'Form (browser JS)','site',{base:'form',
+     note:'Note the dependency: without client JavaScript this form cannot submit at all — the native POST fallback of C2 does not exist here.'})],
+   a:[bxA('ep',1,'LMS endpoint','lms',{base:'ep',
+     note:'In this shape it must also speak CORS, answer preflights, and rate-limit anonymous browsers — a public surface, not a private contract.'}),
+      bxA('rds',1,'RDS (inquiries)','mut',{base:'rds'})],
+   edges:[{from:'site',to:'ep',route:'DH',kind:'write',lab:'browser POST, CORS',
+     info:'A cross-origin write from anonymous browsers. Every burden C2’s server-to-server hop avoided — CORS, preflight caching, browser-side abuse control — lands on this one arrow.'},
+    {from:'ep',to:'rds',route:'H',kind:'int',info:'The same keyed insert as C2 — the contract itself is unharmed; only its exposure changed.'}]}},
+ {id:'C4',verdict:'ok',name:'Queue via SQS',
+  how:'The Server Action enqueues to SQS; an LMS worker drains the queue and performs the keyed insert asynchronously.',
+  pros:['Submissions <b>survive an LMS outage</b> — they queue up durably and drain when it returns.',
+   'The site and LMS are fully decoupled in time; bursts are absorbed by the queue, not the database.'],
+  cons:['The write is now async, so the v4.8 <b>echo is unkeepable</b> — the form can say “accepted”, never “here is your enquiry”.',
+   'Idempotency splits across producer and consumer, enforced only after the user has already been answered.',
+   'PII transits a third system (SQS — regional, outside the VPC) with its own retention and access story to audit.',
+   'Real machinery — queue, worker, DLQ, redrive — for a form unlikely to exceed a few submissions a minute.'],
+  m:{lat:5,fresh:4,simple:2,pii:'transits SQS too',fail:'survives LMS downtime',seo:'n/a'},
+  spec:{title:'C4',rows:2,awsLabel:'AWS af-south-1',
+   cap:'Durable and decoupled — and the form can only ever say “accepted”.',
+   v:[bxV('sa',0,'Server Action','site',{base:'sa'})],
+   a:[bxA('sqs',0,'SQS','mut',{base:'sqs'}),bxA('wk',0,'LMS worker','lms',{base:'wk'}),
+      bxA('rds',1,'RDS (inquiries)','mut',{base:'rds',alignTo:'wk'})],
+   edges:[{from:'sa',to:'sqs',route:'H',kind:'write',lab:'enqueue',
+     info:'The payload and key go into a durable queue and the user is answered immediately — with an acknowledgement, because that is all anyone can truthfully say yet.'},
+    {from:'sqs',to:'wk',route:'H',kind:'int',info:'The worker polls or is triggered, pulling messages inside AWS.'},
+    {from:'wk',to:'rds',route:'V',kind:'int',
+     info:'The keyed insert finally happens — after the response was sent. The unique constraint still guarantees one row; the user just never gets to see it land.'}]}},
+]},
+
+{key:'D',title:'Auth topology',
+ intro:'Where sessions live across two origins — abethuskills.co.za (Vercel) and app.abethuskills.co.za (AWS). Better-Auth and all eight roles are settled (ADR-002); this is purely about cookie scope.',
+ rec:'D1',recwhy:'<b>D1.</b> The marketing origin stays session-free and fully cacheable; the entire auth surface lives on one origin behind one team’s deploys. “Welcome back, Thabo” is not worth doubling the CSRF surface (D2), and D3 splits one flow across two deploy targets for cosmetics.',
+ opts:[
+ {id:'D1',verdict:'rec',name:'Fully separate — sessions on app. only',
+  how:'The site carries zero auth. “Log in” is a plain link to app.abethuskills.co.za, where Better-Auth sets a session scoped to that origin alone.',
+  pros:['The marketing origin holds <b>no cookies and no sessions</b> — nothing to steal, nothing to misconfigure, pages stay fully cacheable.',
+   'The whole attack surface for auth is one origin, one codebase, one deploy pipeline.',
+   'CSRF concerns collapse to the app origin where Better-Auth already handles them.',
+   'The seam carries no credentials at all in this decision — just a hyperlink.'],
+  cons:['Marketing pages cannot personalise — no “welcome back”, no “continue course” shortcuts.',
+   'Users see an origin change at login (in practice: the address bar changes; almost nobody notices).'],
+  m:{lat:5,fresh:0,simple:5,pii:'no PII on marketing origin',fail:'site auth-independent',seo:'app. stays noindex'},
+  spec:{title:'D1',cap:'The only thing crossing the seam is a link.',
+   v:[bxV('site',0,'Site — no cookies','site',{base:'site'})],
+   a:[bxA('auth',0,'app. Better-Auth','lms',{base:'auth'})],
+   edges:[{from:'site',to:'auth',route:'H',kind:'link',lab:'“Log in” — plain hyperlink',
+     info:'Navigation, nothing more. No token handoff, no shared cookie, no redirect dance — the browser changes origin and Better-Auth takes it from there. The simplest possible seam story for credentials: they never cross it.'}],
+   steps:[
+    {on:['b:site'],t:'A visitor browses the marketing site. No cookie is set, no session exists, every page is fully cacheable — there is nothing here to attack or misconfigure.'},
+    {on:['e:0'],t:'“Log in” is a plain link to <code>app.abethuskills.co.za</code>. The only thing that crosses the seam is navigation.'},
+    {on:['b:auth'],t:'Better-Auth creates the session on the app origin, scoped to it. All eight roles live their authenticated lives entirely on that side of the line.'}]}},
+ {id:'D2',verdict:'ok',name:'Shared session — parent-domain cookie',
+  how:'The Better-Auth cookie is scoped to .abethuskills.co.za so both origins can read it; marketing pages can render logged-in state.',
+  pros:['Marketing pages know who you are: “continue your course”, personalised CTAs, one seamless-feeling product.'],
+  cons:['<b>Two origins now carry an authenticated credential</b> — the CSRF and cookie-handling surface doubles, and the marketing site (the one built for anonymous traffic) must suddenly handle sessions correctly.',
+   'Every personalised page becomes uncacheable or needs careful cache-key vary logic — quietly eroding the D1/A3 static story.',
+   'A vulnerability on either origin now endangers sessions for both.'],
+  m:{lat:4,fresh:0,simple:2,pii:'session on both origins',fail:'coupled auth surface',seo:'cacheability suffers'},
+  spec:{title:'D2',cap:'One cookie, two origins — the convenience and the liability are the same object.',
+   outside:[{id:'ck',label:'.abethuskills cookie',kind:'mut',base:'ck',x:296}],
+   v:[bxV('site',0,'Site — session-aware','site',{base:'site',
+     note:'This box just inherited an auth surface: it must validate sessions, vary its caches, and defend CSRF — jobs it was deliberately spared in D1.'})],
+   a:[bxA('lms',0,'app. Better-Auth','lms',{base:'auth'})],
+   edges:[{from:'ck',to:'site',route:'ZD',kind:'int',both:true,sx:316,lab:'sent on every request',lp:'below',
+     info:'The browser attaches the parent-domain cookie to every request to the marketing origin too — whether or not that page has any use for it. Attachment is automatic; so is the exposure.'},
+    {from:'ck',to:'lms',route:'ZD',kind:'int',both:true,sx:436,
+     info:'The same cookie authenticates the app origin — as it did in D1. Nothing was gained here; the change is entirely on the left arrow.'}]}},
+ {id:'D3',verdict:'ok',name:'Login form on site, session on app.',
+  how:'The login form renders on the marketing origin for brand continuity; credentials POST across the seam and the session is still established on app.',
+  pros:['Users type their password on the brand domain — marginally smoother brand story at the door.'],
+  cons:['<b>Credentials now cross the seam</b> on a POST — a new sensitive path to secure for purely cosmetic gain.',
+   'One login flow is split across two origins and two deploy pipelines; every auth change ships twice.',
+   'Password managers and phishing-awareness training both key on origin — mixing origins at the credential prompt muddies exactly the signal you want crisp.'],
+  m:{lat:4,fresh:0,simple:3,pii:'credentials transit seam',fail:'split flow, split debugging',seo:'neutral'},
+  spec:{title:'D3',cap:'The form moved; the session didn’t. Cosmetics bought a credential path.',
+   v:[bxV('form',0,'Login form on site','site',{base:'form',
+     note:'Here it collects a password rather than an enquiry — which promotes this box from marketing furniture to security-critical surface.'})],
+   a:[bxA('sess',0,'app. session','lms',{base:'sess'})],
+   edges:[{from:'form',to:'sess',route:'H',kind:'write',lab:'credentials POST',
+     info:'A password crossing the seam. It can be done safely — TLS, careful handling — but it is a new category of sensitive traffic on this boundary, purchased for brand continuity at the login prompt.'}]}},
+]},
+
+{key:'E',title:'Certificate verification',
+ intro:'The public /verify/{token} page reached from the QR printed on every certificate. Paper doesn’t redeploy: whichever origin goes on the QR is a near-permanent commitment.',
+ rec:'E1',recwhy:'<b>E1.</b> The brand domain owns the printed URL and the credential rich results; the LMS serves one masked, rate-limited read per scan; app. stays noindex. E2 prints the wrong origin onto permanent paper; E3 is E1 plus a redirect shim you only build if old certificates already exist.',
+ opts:[
+ {id:'E1',verdict:'rec',name:'Verify on the site, masked LMS read',
+  how:'QR → abethuskills.co.za/verify/{token}; the site renders the page and makes one token-keyed seam call for maskable fields only.',
+  pros:['The printed origin is the <b>brand domain</b> — the one origin the business will defend forever anyway.',
+   'EducationalOccupationalCredential JSON-LD ships on the authority domain, so credential rich results reinforce the domain doing all the SEO work.',
+   'The seam exposure is one masked, rate-limited, token-keyed read per scan — nothing enumerable, nothing beyond what the paper already shows.',
+   'app. remains fully noindex, exactly as an authenticated tool should.'],
+  cons:['One more public seam endpoint to defend (small, masked, but real).',
+   'Verification is briefly unavailable if the LMS is down — acceptable for a check performed occasionally by employers.'],
+  m:{lat:4,fresh:5,simple:3,pii:'masked fields only',fail:'verify down with LMS',seo:'credential rich results'},
+  spec:{title:'E1',cap:'The permanent URL sits on the permanent domain.',
+   outside:[{id:'qr',label:'QR on certificate',kind:'mut',base:'qr',x:44}],
+   v:[bxV('ver',0,'site /verify/{token}','site',{base:'ver'})],
+   a:[bxA('read',0,'masked LMS read','lms',{base:'read'}),bxA('rds',0,'RDS (certs)','mut',{base:'rds'})],
+   edges:[{from:'qr',to:'ver',route:'V',kind:'int',lab:'scan',
+     info:'The scan resolves to the brand domain — the address that was printed, and the address that will still answer in ten years.'},
+    {from:'ver',to:'read',route:'H',kind:'read',lab:'token lookup',
+     info:'One seam read per scan, keyed on an unguessable token and rate-limited. There is no listing, no search, no enumeration surface — you can verify the certificate in your hand and nothing else.'},
+    {from:'read',to:'rds',route:'H',kind:'int',
+     info:'The lookup against the certificates tables, returning only maskable fields: partially redacted learner name, course, date, validity.'}],
+   steps:[
+    {on:['b:qr'],t:'A phone scans the QR. The printed URL is <code>abethuskills.co.za/verify/{token}</code> — the brand domain, the origin you’re willing to keep forever.'},
+    {on:['b:ver','e:0'],t:'The site renders the verify page and marks it up with EducationalOccupationalCredential JSON-LD — credential rich results accrue to the authority domain.'},
+    {on:['b:ver','e:1','b:read'],t:'One seam call per scan: the token-keyed, rate-limited masked read. Tokens are unguessable; there is nothing to enumerate.'},
+    {on:['b:read','e:2','b:rds'],t:'The endpoint returns only maskable fields — no more than the paper certificate already shows. And app. stays wholly noindex.'}]}},
+ {id:'E2',verdict:'ok',name:'Verify on app.',
+  how:'The QR points at app.abethuskills.co.za/verify/{token}; the LMS serves the page itself with no seam call.',
+  pros:['No seam involved at all — the LMS reads its own database and renders.',
+   'One fewer public endpoint on the site.'],
+  cons:['The <b>app origin gets printed onto paper</b> — the LMS host, name and subdomain strategy are now frozen by certificates in the field.',
+   'A public, indexable page must be carved out of an origin that is otherwise deliberately noindex — a standing exception to a clean rule.',
+   'The credential rich results accrue to the wrong domain — or to none.'],
+  m:{lat:5,fresh:5,simple:4,pii:'masked fields only',fail:'verify down with LMS',seo:'authority leaks to app.'},
+  spec:{title:'E2',cap:'Simple today — and the app origin is on paper forever.',
+   outside:[{id:'qr',label:'QR on certificate',kind:'mut',base:'qr',x:44}],
+   v:[bxV('site',0,'Site — uninvolved','site',{base:'site',
+     note:'Bypassed entirely in this shape — which also means the brand domain earns nothing from the credential pages.'})],
+   a:[bxA('ver',0,'app. /verify/{token}','lms',{base:'ver',
+     note:'Here it lives on the app origin — publicly indexable carve-out on an otherwise noindex host, and the address on every printed certificate.'})],
+   edges:[{from:'qr',to:'ver',route:'LT',kind:'int',lab:'scan — app URL on paper',
+     info:'The scan bypasses the brand domain entirely. Operationally fine; strategically it welds the LMS’s hostname to physical paper that will outlive any infra decision you make this year.'}]}},
+ {id:'E3',verdict:'ok',name:'Site verify + legacy 301 shim',
+  how:'E1 for all new certificates, plus a permanent app.-side redirect so any old printed QRs still resolve.',
+  pros:['New paper carries the right origin; old paper keeps working — <b>nobody’s certificate ever dies</b>.',
+   'The shim is trivial: one 301 route, maintained indefinitely.'],
+  cons:['Only meaningful if app-origin QRs were already printed — as a day-one choice it is E1 plus an unused redirect.',
+   'The legacy route is a tiny permanent obligation on the LMS: forever answering for an old address.'],
+  m:{lat:4,fresh:5,simple:3,pii:'masked fields only',fail:'as E1',seo:'301 consolidates to site'},
+  spec:{title:'E3',cap:'E1, plus one permanent apology for old paper.',
+   outside:[{id:'qr',label:'old QR, app URL',kind:'mut',base:'qr',x:44}],
+   v:[bxV('ver',0,'site /verify/{token}','site',{base:'ver'})],
+   a:[bxA('lms',0,'app. 301 shim','lms',{base:'lms',
+     note:'In this shape its only job on this page is the redirect: catch the legacy address, answer 301, point at the site — forever.'})],
+   edges:[{from:'qr',to:'lms',route:'LT',kind:'int',lab:'legacy scan',
+     info:'An old certificate’s QR resolving to the app origin it was printed with. Paper doesn’t care what ADR-010 decided.'},
+    {from:'lms',to:'ver',route:'HL',kind:'read',lab:'301 to site',
+     info:'A permanent redirect crossing the seam back to the canonical verify page — also consolidating whatever search equity the old URLs gathered onto the brand domain.'}]}},
+]},
+
+{key:'F',title:'Fact freshness SLA',
+ intro:'How stale may a price or seat count be on the marketing site? This is the knob on B3’s cache — and the parity constraint is fixed: the JSON-LD price and the page price must always match.',
+ rec:'F2',recwhy:'<b>F2.</b> Tiered TTLs price staleness honestly — seats at 60 s because they move, price at hours because it doesn’t — with zero new infrastructure. F1 re-imports B2’s coupling; F3/F4 are the right graduation <i>after</i> pg-boss exists for other reasons, not a reason to build it.',
+ opts:[
+ {id:'F1',verdict:'ok',name:'Always live — no cache',
+  how:'Skip caching entirely: every render fetches facts across the seam, freshness is absolute.',
+  pros:['No staleness window exists at all, ever — nothing to explain, nothing to tune.'],
+  cons:['Re-imports everything B3 was chosen to avoid: every view crosses the seam and marketing traffic is LMS load again.',
+   'Pays worst-case latency on every view to solve a problem — sub-minute staleness — that almost no fact here has.'],
+  m:{lat:2,fresh:5,simple:4,pii:'none',fail:'facts down with LMS',seo:'parity holds, CWV suffers'},
+  spec:{title:'F1',cap:'Absolute freshness, purchased per view.',
+   v:[bxV('site',0,'Site','site')],
+   a:[bxA('api',0,'LMS API','lms'),bxA('rds',0,'RDS (public)','mut',{base:'rds'})],
+   edges:[{from:'site',to:'api',route:'H',kind:'read',lab:'uncached GET per view',
+     info:'B2’s arrow, resurrected as a freshness policy. The staleness window is zero — and so is the shielding between an ad campaign and your database.'},
+    {from:'api',to:'rds',route:'H',kind:'int',info:'The seam API querying public through the LMS’s pooled connections.'}]}},
+ {id:'F2',verdict:'rec',name:'Tiered TTLs + SWR',
+  how:'B3’s cache with deliberate per-class TTLs — seats revalidated after 60 s, price after hours — and stale-while-revalidate on everything.',
+  pros:['Staleness is <b>priced per fact</b>: volatile numbers stay near-live, stable ones cache for hours — each class pays only its own freshness bill.',
+   'SWR keeps even the refresh off the reader’s clock — stale served instantly, fresh fetched behind.',
+   'Zero new infrastructure: one option on a fetch that exists anyway.',
+   'JSON-LD parity holds by construction — page and structured data render from the same fetch.'],
+  cons:['A seat can oversell in its ≤60 s window during a rush — which enrolment confirmation must catch anyway (and does).',
+   'The TTL tiers are policy that must be written down, or future edits will “fix” them into incoherence.'],
+  m:{lat:5,fresh:4,simple:4,pii:'none',fail:'serves stale on outage',seo:'parity by construction'},
+  spec:{title:'F2',rows:2,cap:'Each fact class pays exactly its own freshness bill.',
+   v:[bxV('site',0,'Site','site'),bxV('cache',1,'data cache, tiered TTL','mut',{base:'cache'})],
+   a:[bxA('api',1,'LMS API','lms')],
+   edges:[{from:'site',to:'cache',route:'V',kind:'int',
+     info:'The render asking its edge for facts — where, within TTL, the request ends without the seam ever being involved.'},
+    {from:'cache',to:'api',route:'H',kind:'read',lab:'on expiry, SWR',
+     info:'The refresh crossing: only on expiry, and thanks to SWR never on the reader’s clock — the stale value is served while this runs.'}],
+   steps:[
+    {on:['b:site','e:0','b:cache'],t:'Every render asks the cache. Seats carry <code>revalidate: 60</code>; price carries hours. Two fact classes, two honest TTLs, one endpoint.'},
+    {on:['b:cache'],t:'Within TTL: pure Vercel. The seam is not on the request path at all.'},
+    {on:['e:1','b:api'],t:'On expiry, SWR serves the stale value <i>instantly</i> and refreshes across the seam in the background — the reader never waits on AWS.'},
+    {on:['b:site'],t:'The JSON-LD price, the page price and the database price all come from the same fetch — SERP ↔ page parity holds by construction, at every tier.'}]}},
+ {id:'F3',verdict:'ok',name:'Event-driven revalidation',
+  how:'Fact mutations in the LMS fire pg-boss jobs that call the site’s revalidateTag — pages refresh when data changes, not when timers expire.',
+  pros:['Freshness within seconds of the actual change, with <b>no timer-driven refetching</b> — a fact that does not change causes no site work.',
+   'Conceptually the cleanest: the cache is invalidated by truth, not by clock.'],
+  cons:['Presupposes pg-boss, mutation hooks on every fact-changing path, and a secured revalidation endpoint — the full event pipeline before the first benefit.',
+   'A silently dropped event means confidently stale data with no timer to eventually correct it (F4 exists to fix exactly this).'],
+  m:{lat:5,fresh:4,simple:2,pii:'none',fail:'dropped event = silent stale',seo:'parity holds'},
+  spec:{title:'F3',cap:'Invalidated by truth, not by clock — once the event bus exists.',
+   v:[bxV('site',0,'Site (ISR)','site',{base:'site'})],
+   a:[bxA('chg',0,'fact mutation','lms',{base:'chg'}),bxA('boss',0,'pg-boss','lms',{base:'boss'})],
+   edges:[{from:'chg',to:'boss',route:'H',kind:'int',lab:'enqueue job',lp:'below',ly:22,
+     info:'The mutation inserts a job row in the same transaction as the change. A pg-boss worker claims it on its next poll, or sooner where LISTEN/NOTIFY wake-up is enabled.'},
+    {from:'boss',to:'site',route:'ZB',kind:'write',lab:'event → revalidateTag',
+     info:'The job calls the site’s secured revalidation endpoint with the affected tags — “everything showing course 12’s price” refreshes, wherever it appears. If this call is ever lost, nothing else notices: that fragility is F3’s core weakness.'}]}},
+ {id:'F4',verdict:'ok',name:'Hybrid — events + TTL safety net',
+  how:'F3’s event lane for price-class facts, with F2’s tiered TTLs kept underneath as the correcting backstop.',
+  pros:['<b>Best of both</b>: near-instant price updates via events, and a dropped event self-heals at the next TTL expiry.',
+   'Seat counts stay on the simple 60 s TTL where events would be churn anyway.'],
+  cons:['Two freshness mechanisms running at once — every “why is this stale?” now has two suspects.',
+   'All of F3’s build cost, plus the discipline of keeping both layers’ policies coherent.'],
+  m:{lat:5,fresh:4,simple:2,pii:'none',fail:'self-heals via TTL',seo:'parity holds'},
+  spec:{title:'F4',rows:2,cap:'Events for speed, TTL for truth — the graduation path once pg-boss exists.',
+   v:[bxV('site',0,'Site','site'),bxV('cache',1,'data cache, tiered TTL','mut',{base:'cache'})],
+   a:[bxA('boss',0,'pg-boss','lms',{base:'boss'}),bxA('api',1,'LMS API','lms')],
+   edges:[{from:'boss',to:'site',route:'HL',kind:'write',lab:'price events',
+     info:'The F3 lane, scoped to the facts where seconds matter: a price change fires an event that purges its tags immediately.'},
+    {from:'site',to:'cache',route:'V',kind:'int',
+     info:'The ordinary read path, unchanged from F2.'},
+    {from:'cache',to:'api',route:'H',kind:'read',lab:'seats, 60 s',
+     info:'The TTL backstop: seats refresh on the simple timer, and any price event that ever goes missing is corrected at the next expiry rather than never.'}]}},
+]},
+];
+
+/* ═══════════════════ master topology ═══════════════════ */
+Object.assign(ANN,{
+vis:{t:'Anonymous visitors',r:'the public internet',m:'Marketing traffic — ad clicks, organic search, direct. Everything they touch is a static file from the cpt1 edge; nothing they do reaches a database.'},
+stf:{t:'Staff & learners',r:'authenticated users',m:'All eight roles, arriving directly at the app origin. Their traffic never passes through the marketing site — the two audiences use two front doors.'},
+s3:{t:'S3: certificates + media',r:'in-region object store',m:'Generated certificate PDFs and CMS media. The LMS writes certificate artefacts here; Directus stores uploads here.'},
+});
+const MASTER={manual:true,title:'Master topology',y0:72,zoneH:330,H:416,
+ cap:'The recommended end-state. Every amber arrow is a deliberate seam crossing; everything else stays home.',
+ boxes:[
+  {id:'vis',zone:'o',x:91,y:16,w:170,h:32,label:'Anonymous visitors',kind:'mut',base:'vis'},
+  {id:'stf',zone:'o',x:560,y:16,w:160,h:32,label:'Staff & learners',kind:'mut',base:'stf'},
+  {id:'site',zone:'v',x:61,y:108,w:230,h:48,label:'Next.js public site',sub:'ISR, JSON-LD, sitemap',kind:'site',base:'site'},
+  {id:'lms',zone:'a',x:470,y:108,w:220,h:48,label:'TanStack Start LMS',sub:'Better-Auth, pg-boss',kind:'lms',base:'lms'},
+  {id:'db',zone:'a',x:470,y:186,w:300,h:64,label:'RDS PostgreSQL 16',kind:'mut',base:'rds',chips:['public: 67 tables','cms: 7 tables']},
+  {id:'cms',zone:'a',x:470,y:280,w:170,h:44,label:'Directus',sub:'cms schema only',kind:'cms',base:'cms'},
+  {id:'s3',zone:'a',x:470,y:352,w:210,h:36,label:'S3: certificates + media',kind:'mut',base:'s3'},
+ ],
+ edges:[
+  {from:'vis',to:'site',pts:[[176,52],[176,99]],kind:'int',
+   info:'Public traffic arriving at the edge — served pre-built static files in cpt1. No render, no database, no cloud round-trip.'},
+  {from:'stf',to:'lms',pts:[[640,52],[640,99]],kind:'int',
+   info:'Authenticated traffic arriving directly at the app origin. It never passes through the marketing site — two audiences, two front doors.'},
+  {from:'site',to:'lms',pts:[[295,124],[461,124]],kind:'read',lab:'read facts (B3)',
+   info:'The B3 facts read — price, intake, seats — behind the data cache, so this arrow fires only on a MISS or an expired entry. The common case never leaves Vercel.'},
+  {from:'site',to:'lms',pts:[[295,140],[461,140]],kind:'write',lab:'inquiries (C2)',lp:'below',
+   info:'The C2 write: the one public mutation, forwarded server-to-server with the v4.8 idempotency key. Lead PII crosses here in transit and comes to rest only in-VPC.'},
+  {from:'site',to:'db',pts:[[230,160],[230,216],[461,216]],kind:'block',lab:'direct pg, blocked',
+   info:'The path the wireframes assumed, dead at the VPC boundary (ADR-005). Its absence is what forces every other arrow on this diagram to exist — the whole document is downstream of this ✕.'},
+  {from:'site',to:'cms',pts:[[100,160],[100,291],[461,291]],kind:'read',lab:'content fetch (A3)',
+   info:'The A3 content fetch: at build time, and once per publish on the first request after the route is invalidated. Directus serves one render per change, not one per visitor.'},
+  {from:'cms',to:'site',pts:[[466,313],[120,313],[120,165]],kind:'write',lab:'publish webhook',
+   info:'Directus Flows firing revalidatePath on publish — the one runtime signal crossing the seam from the AWS side, carrying no content, just “this page changed”.'},
+  {from:'lms',to:'db',pts:[[580,160],[580,177]],kind:'int',lab:'pg',
+   info:'The LMS’s pooled pg connections, shared by its request handlers and pg-boss workers. No other component holds credentials for the public schema.'},
+  {from:'cms',to:'db',pts:[[540,276],[540,259]],kind:'int',lab:'cms only',
+   info:'Directus writing through its scoped role: cms + directus schemas only. The public schema is structurally invisible to it — an editing mistake cannot touch operational data.'},
+  {from:'cms',to:'s3',pts:[[500,328],[500,343]],kind:'int',lab:'media',
+   info:'CMS uploads — images, documents — stored as objects, referenced from cms rows.'},
+  {from:'lms',to:'s3',pts:[[694,132],[786,132],[786,370],[689,370]],kind:'write',lab:'store cert PDFs',lp:'left',ly:40,
+   info:'Generated certificate PDFs written to the object store — the artefacts whose printed QRs decision E is about.'},
+ ]};
+function renderMaster(){
+  render('dg-master',MASTER);
+  const lg=document.getElementById('masterlegend');
+  const ln=(col,dash,extra)=>`<svg viewBox="0 0 34 12"><line x1="1" y1="6" x2="33" y2="6" stroke="${col}" stroke-width="2" ${dash?'stroke-dasharray="5 4"':''}/>${extra||''}</svg>`;
+  lg.innerHTML=[
+   [ln('var(--seamedge)',1),'crosses the seam'],
+   [ln('var(--edge)',1),'stays in-cloud'],
+   [ln('var(--blocked)',1,'<line x1="14" y1="2" x2="22" y2="10" stroke="var(--blocked)" stroke-width="2"/><line x1="22" y1="2" x2="14" y2="10" stroke="var(--blocked)" stroke-width="2"/>'),'blocked at the VPC'],
+   ['<svg viewBox="0 0 34 12"><path d="M22 2 L30 6 L22 10" fill="none" stroke="var(--edge)" stroke-width="2"/></svg>','read / pull'],
+   ['<svg viewBox="0 0 34 12"><path d="M22 2 L30 6 L22 10 Z" fill="var(--edge)" stroke="var(--edge)" stroke-width="2"/></svg>','write / push'],
+  ].map(([s,t])=>`<span class="li">${s}${t}</span>`).join('');
+}
+
+/* ═══════════════════ latency ladder ═══════════════════ */
+const LADDER=[
+ ['ISR / static edge hit','Pre-built page from the cpt1 edge — the A3 reader path',15,40],
+ ['Cache HIT (B3 / F2)','Facts answered from the Vercel-side data cache',20,50],
+ ['Cache MISS → LMS → RDS','One same-metro seam hop plus the query',60,120],
+ ['Per-request SSR → Directus (A2)','Content fetched on every render — the path A3 avoids',80,150],
+ ['Inquiries submit (C2)','Form → Server Action → LMS endpoint → keyed insert',120,220],
+];
+function buildLadder(){
+  const max=240,host=document.getElementById('ladder');
+  host.innerHTML=`<div class="lrow axis" aria-hidden="true"><div></div><div class="lax">${[0,60,120,180,240].map(v=>`<span style="left:${v/max*100}%">${v}</span>`).join('')}</div><div class="lms-txt">ms</div></div>`+
+   LADDER.map(([n,d,a,b])=>`
+    <div class="lrow"><div><div class="ln">${n}</div><div class="ld">${d}</div></div>
+    <div class="lbar"><i style="left:${a/max*100}%;width:${(b-a)/max*100}%"></i></div>
+    <div class="lms-txt" data-notag><b>${a}–${b}</b> ms</div></div>`).join('')+
+    `<div class="lnote">Same-metro TTFB estimates (cpt1 ↔ af-south-1 ≈ 2–10 ms). An ordering, not measurements.</div>`;
+}
+
+/* ═══════════════════ decisions ═══════════════════ */
+const TONE=(()=>{const m={};
+  const put=(t,a)=>a.forEach(s=>m[s]=t);
+  put('good',['none (content only)','none','none (public facts)','rests in-VPC only','no PII on marketing origin','masked fields only',
+    'stale-not-down','serves stale on LMS outage','form errors clearly; retry-safe','survives LMS downtime','site auth-independent',
+    'serves stale on outage','self-heals via TTL','best-case CWV','JSON-LD carries live price','app. stays noindex',
+    'credential rich results','301 consolidates to site','parity by construction','parity holds']);
+  put('warn',['transits SQS too','session on both origins','browser-visible errors','coupled auth surface','split flow, split debugging',
+    'verify down with LMS','as E1','fine if cadence is tight','cacheability suffers','parity holds, CWV suffers','CWV at risk under load',
+    'CWV degrades under load','authority leaks to app.']);
+  put('bad',['credentials transit seam','blocked by design','hard — 5xx with Directus','facts 5xx with LMS','silent gaps in the page',
+    'facts down with LMS','dropped event = silent stale','harms rich results']);
+  return m;})();
+const tg=s=>`<span class="tg t-${TONE[s]||'na'}">${s}</span>`;
+const dotTxt=(n,k)=>typeof n!=='number'||!n?'<span class="tg t-na">—</span>'
+  :`<span class="tdot s${n}">${'●'.repeat(n)}<span>${'●'.repeat(5-n)}</span></span><span class="tw">${MW[k][n]||''}</span>`;
+function indexOpts(){
+  DECS.forEach(D=>D.opts.forEach(o=>{OPT[o.id]={D,o};
+    allBoxes(o.spec).forEach(b=>{const k=b.base||b.id;(USES[k]=USES[k]||[]);if(!USES[k].includes(o.id))USES[k].push(o.id);});}));
+}
+function buildDecisions(){
+  const mount=document.getElementById('decisions');
+  DECS.forEach(D=>{
+    D.maxH=Math.max(...D.opts.map(o=>layout(o.spec).H));
+    const sec=document.createElement('section');sec.id='dec-'+D.key;
+    sec.innerHTML=`
+      <div class="eyebrow">${D.opts.length} options</div>
+      <div class="dec-head"><span class="dec-letter">${D.key}</span><h2>${D.title}</h2>
+        <span class="recchip" data-notag>Recommended ${D.rec}</span></div>
+      <p class="body">${D.intro}</p>
+      <div class="tabs" role="tablist" aria-label="Options for decision ${D.key}"></div>
+      <div class="dwrap"><div id="dg-${D.key}"></div></div>
+      <div class="optgrid"><div class="opanel" id="op-${D.key}"></div><div class="opanel pc" id="pc-${D.key}"></div></div>
+      <table class="cmp"><thead><tr><th>Option</th><th>Reader latency</th><th>Freshness</th><th>Simplicity</th><th>PII</th><th>Fails as</th><th>SEO</th></tr></thead>
+      <tbody>${D.opts.map(o=>`<tr data-opt="${o.id}" class="${o.verdict==='rec'?'hl-rec':o.verdict==='dead'?'hl-dead':''}">
+        <td data-notag>${o.id}${o.verdict==='rec'?' ★':o.verdict==='dead'?' ✕':''}</td>
+        <td data-l="Latency">${dotTxt(o.m.lat,'lat')}</td><td data-l="Freshness">${dotTxt(o.m.fresh,'fresh')}</td><td data-l="Simplicity">${dotTxt(o.m.simple,'simple')}</td>
+        <td data-l="PII">${tg(o.m.pii)}</td><td data-l="Fails as">${tg(o.m.fail)}</td><td data-l="SEO">${tg(o.m.seo)}</td></tr>`).join('')}</tbody></table>
+      <div class="recbox"><b>Recommendation — </b>${D.recwhy}</div>`;
+    mount.appendChild(sec);
+    const tabs=sec.querySelector('.tabs');
+    D.opts.forEach((o,i)=>{
+      const b=document.createElement('button');b.className='tab';b.setAttribute('role','tab');b.type='button';
+      b.innerHTML=`<span class="vd ${o.verdict}"></span><b>${o.id}</b>${o.name}`;
+      b.addEventListener('click',()=>showOpt(D,o));
+      b.addEventListener('keydown',ev=>{
+        const d=ev.key==='ArrowRight'?1:ev.key==='ArrowLeft'?-1:0;if(!d)return;
+        const j=(i+d+D.opts.length)%D.opts.length;ev.preventDefault();showOpt(D,D.opts[j]);tabs.children[j].focus();});
+      tabs.appendChild(b);
+    });
+    showOpt(D,OPT[picks[D.key]]?OPT[picks[D.key]].o:D.opts[0]);
+  });
+}
+function showOpt(D,o){
+  const sec=document.getElementById('dec-'+D.key),idx=D.opts.indexOf(o);
+  D.cur=o.id;
+  sec.querySelectorAll('.tab').forEach((t,i)=>{t.classList.toggle('on',i===idx);t.setAttribute('aria-selected',i===idx?'true':'false');
+    t.tabIndex=i===idx?0:-1;});
+  sec.querySelectorAll('tr[data-opt]').forEach(r=>r.classList.toggle('cur',r.dataset.opt===o.id));
+  render('dg-'+D.key,o.spec,{maxH:D.maxH});
+  const vword={rec:'Recommended',dead:'Cannot be built',ok:'Viable'};
+  const mrow=(l,k)=>{const v=o.m[k],num=typeof v==='number'&&v>0;
+    return `<div class="mrow"><span class="ml" data-notag>${l}</span><span class="dots s${num?v:0}">${
+    num?Array.from({length:5},(_,i)=>`<i class="${i<v?'f':''}"></i>`).join(''):''}
+    </span><span class="mword">${num?(MW[k][v]||''):'—'}</span></div>`;};
+  document.getElementById('op-'+D.key).innerHTML=`
+    <span class="verdict ${o.verdict}">${vword[o.verdict]}</span>
+    <h3 data-notag>${o.id} ${o.name}</h3>
+    <p class="how">${o.how}</p>
+    <div class="metrics">${mrow('Latency','lat')}${mrow('Freshness','fresh')}${mrow('Simplicity','simple')}
+      <div class="mrow"><span class="ml" data-notag>PII</span>${tg(o.m.pii)}</div>
+      <div class="mrow"><span class="ml" data-notag>Fails as</span>${tg(o.m.fail)}</div>
+      <div class="mrow"><span class="ml" data-notag>SEO</span>${tg(o.m.seo)}</div></div>
+    <button class="btn pickbtn" type="button" data-pick="${o.id}"></button>`;
+  document.getElementById('pc-'+D.key).innerHTML=`
+    <div class="pros"><h4>For</h4><ul>${o.pros.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+    <div class="cons"><h4>Against</h4><ul>${o.cons.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+  tagInto(document.getElementById('op-'+D.key));
+  tagInto(document.getElementById('pc-'+D.key));
+  markPicks();
+}
+function gotoOpt(id,scroll){
+  const r=OPT[id];if(!r)return;
+  MODAL.close();POP.close();
+  showOpt(r.D,r.o);
+  const sec=document.getElementById('dec-'+r.D.key);
+  if(scroll&&sec.scrollIntoView)sec.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ═══════════════════ decision sheet ═══════════════════ */
+const WARN={
+ A1:['hard','A1 is blocked by the VPC — it cannot be built.'],
+ B1:['hard','B1 is blocked by the VPC — it cannot be built.'],
+ C1:['hard','C1 is blocked by the VPC — it cannot be built.'],
+ B4:['soft','B4 collapses decision B into A: facts ship as content and the ops/marketing schema boundary blurs. F becomes mostly moot.'],
+ B5:['hard','B5 ships the Course JSON-LD without a price — SERP ↔ page parity breaks. Only acceptable layered on top of B3.'],
+ C4:['soft','C4 removes the v4.8 duplicate-row echo — the form UX contract changes to “accepted”, and idempotency spans two components.'],
+ D2:['soft','D2 puts a session cookie on the parent domain: CSRF surface doubles and marketing pages lose full cacheability.'],
+ F1:['soft','F1 couples marketing traffic to LMS/database load one-to-one — campaign spikes hit RDS.'],
+ F3:['soft','F3 presupposes pg-boss event plumbing that does not exist yet.'],
+ F4:['soft','F4 presupposes pg-boss event plumbing — the intended end-state, premature as a starting point.'],
+};
+const picks={},LS='abethu-seam-picks';
+function initPicks(){
+  let saved={};try{saved=JSON.parse(localStorage.getItem(LS)||'{}')||{};}catch(e){}
+  DECS.forEach(D=>{const s=saved[D.key];picks[D.key]=OPT[s]&&OPT[s].D===D?s:D.rec;});
+}
+function setPick(key,id){
+  picks[key]=id;try{localStorage.setItem(LS,JSON.stringify(picks));}catch(e){}
+  renderSheet();markPicks();
+}
+function markPicks(){
+  DECS.forEach(D=>{
+    const sec=document.getElementById('dec-'+D.key);if(!sec)return;
+    sec.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('picked',D.opts[i].id===picks[D.key]));
+    const pb=sec.querySelector('.pickbtn');
+    if(pb){const on=pb.dataset.pick===picks[D.key];pb.classList.toggle('on',on);pb.disabled=on;
+      pb.textContent=on?`${pb.dataset.pick} is on the decision sheet`:`Put ${pb.dataset.pick} on the decision sheet`;}
+  });
+}
+function sheetWarnings(){
+  const out=[],p=picks;
+  DECS.forEach(D=>{const id=p[D.key];if(id===D.rec)return;
+    const w=WARN[id];
+    if(w)out.push({lvl:w[0],html:w[1]});
+    else out.push({lvl:'info',html:`${id} in place of the recommended ${D.rec}. ${OPT[id].o.cons[0]}`});});
+  if((p.B==='B2'||p.B==='B5')&&(p.F==='F2'||p.F==='F4'))
+    out.push({lvl:'soft',html:`${p.F} sets TTL tiers on B3’s cache, and ${p.B} has no cache for them to apply to. ${p.B} pairs with F1.`});
+  if(p.B==='B3'&&p.F==='F1')out.push({lvl:'soft',html:'F1 removes the cache that defines B3, so the pair behaves as B2.'});
+  if(p.D==='D2'&&p.A==='A3')out.push({lvl:'soft',html:'D2 alongside A3: any page that renders logged-in state leaves the static ISR path.'});
+  const rank={hard:0,soft:1,info:2};
+  return out.sort((a,b)=>rank[a.lvl]-rank[b.lvl]);
+}
+function renderSheet(){
+  const host=document.getElementById('sheetbody');host.innerHTML='';
+  DECS.forEach(D=>{
+    const row=document.createElement('div');row.className='drow';row.setAttribute('data-notag','');
+    row.innerHTML=`<div class="dl"><b>${D.key}</b> ${D.title}<span>recommended: ${D.rec}</span></div>`;
+    D.opts.forEach(o=>{
+      const b=document.createElement('button');b.className='pick'+(o.id===picks[D.key]?' on':'');b.type='button';
+      b.title=o.name;b.setAttribute('aria-pressed',o.id===picks[D.key]?'true':'false');
+      b.innerHTML=`<span class="vd ${o.verdict}"></span>${o.id}`;
+      b.addEventListener('click',()=>setPick(D.key,o.id));
+      row.appendChild(b);});
+    host.appendChild(row);});
+  document.getElementById('sheetstr').innerHTML=DECS.map(D=>`<span class="${picks[D.key]===D.rec?'':'dev'}">${picks[D.key]}</span>`).join('');
+  const ws=sheetWarnings(),hard=ws.filter(x=>x.lvl==='hard').length,dev=DECS.filter(D=>picks[D.key]!==D.rec).length;
+  document.getElementById('sheetstat').innerHTML=hard
+    ?`<span class="tg t-bad">${hard} blocking</span><span>This combination cannot ship as picked.</span>`
+    :dev?`<span class="tg t-warn">${dev} off recommendation</span><span>Buildable, with the trade-offs listed below.</span>`
+    :'<span class="tg t-good">All six on recommendation</span><span>No conflicts between the picks.</span>';
+  const w=document.getElementById('warns');w.innerHTML='';
+  ws.forEach(x=>{const d=document.createElement('div');
+    d.className='warn'+(x.lvl==='soft'?' softw':x.lvl==='info'?' infow':'');d.innerHTML=x.html;w.appendChild(d);tagInto(d);});
+}
+function plain(html){const d=document.createElement('div');d.innerHTML=html;return d.textContent.replace(/\s+/g,' ').trim();}
+function adrDraft(){
+  const L=['# ADR-010: Seam topology between the public site and the LMS','','Status: Proposed','','## Context','',
+    'The public site runs as Next.js on Vercel (cpt1) and the LMS as TanStack Start on AWS (af-south-1). RDS is VPC-private (ADR-005), so the site holds no database connection and every exchange crosses the seam through a named path.',
+    '','## Decisions',''];
+  DECS.forEach(D=>{const o=OPT[picks[D.key]].o;
+    L.push(`### ${D.key}. ${D.title}: ${o.id}, ${o.name}`,'',plain(o.how),'');
+    if(o.id!==D.rec)L.push(`Departs from the explorer's recommendation (${D.rec}).`,'');});
+  const ws=sheetWarnings();
+  if(ws.length){L.push('## Accepted consequences','');ws.forEach(x=>L.push('- '+plain(x.html)));L.push('');}
+  L.push('## Sign-off','',DECS.map(D=>picks[D.key]).join(' '),'');
+  return L.join('\n');
+}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2400);}
+function copyText(text,okMsg){
+  const fallback=()=>{let ok=false;const ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');
+    ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.select();
+    try{ok=document.execCommand('copy');}catch(e){}
+    ta.remove();toast(ok?okMsg:'Clipboard is blocked in this frame');};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(()=>toast(okMsg),fallback);
+  else fallback();
+}
+function bindSheet(){
+  document.getElementById('copybtn').addEventListener('click',()=>
+    copyText('Seam decisions: '+DECS.map(D=>picks[D.key]).join(' '),'Sign-off string copied'));
+  document.getElementById('adrbtn').addEventListener('click',()=>copyText(adrDraft(),'ADR-010 draft copied as Markdown'));
+  document.getElementById('resetbtn').addEventListener('click',()=>{
+    DECS.forEach(D=>{picks[D.key]=D.rec;});try{localStorage.removeItem(LS);}catch(e){}
+    renderSheet();markPicks();});
+  document.addEventListener('click',e=>{
+    const th=e.target.closest('[data-theme-toggle]');
+    if(th){const dark=document.body.classList.toggle('dark');try{localStorage.setItem('abethu-seam-theme',dark?'dark':'light');}catch(err){}return;}
+    const pk=e.target.closest('[data-pick]');
+    if(pk){setPick(pk.dataset.pick[0],pk.dataset.pick);return;}
+    const o=e.target.closest('button.oref');
+    if(o){gotoOpt(o.dataset.opt,true);return;}
+    const tr=e.target.closest('tr[data-opt]');
+    if(tr&&!e.target.closest('button'))gotoOpt(tr.dataset.opt,false);
+  });
+}
+
+/* ═══════════════════ chrome ═══════════════════ */
+(function(){
+  const body=document.body;
+  let th=null;try{th=localStorage.getItem('abethu-seam-theme');}catch(e){}
+  if(th?th==='dark':(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches))body.classList.add('dark');
+  const nt=document.getElementById('navtoggle');
+  nt.addEventListener('click',()=>{
+    if(window.innerWidth<=900)body.classList.toggle('side-open');
+    else body.classList.toggle('side-closed');});
+  document.getElementById('scrim').addEventListener('click',()=>body.classList.remove('side-open'));
+  let lastY=0;const top=document.getElementById('top');
+  window.addEventListener('scroll',()=>{
+    const y=window.scrollY;
+    top.classList.toggle('hidden',y>lastY&&y>90);
+    lastY=y;},{passive:true});
+  if('IntersectionObserver' in window){
+    const links=[...document.querySelectorAll('#side a')];
+    const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+    const obs=new IntersectionObserver(es=>{
+      es.forEach(e=>{if(e.isIntersecting){
+        links.forEach(a=>a.classList.remove('on'));
+        const a=map.get(e.target.id);if(a)a.classList.add('on');}});
+    },{rootMargin:'-18% 0px -70% 0px'});
+    document.querySelectorAll('section[id]').forEach(s=>obs.observe(s));
+  }
+})();
+
+/* ═══════════════════ boot ═══════════════════ */
+indexOpts();
+initPicks();
+renderMaster();
+buildLadder();
+buildDecisions();
+renderSheet();
+bindSheet();
+tagInto(document.getElementById('main'));
+</script>
+</body>
+</html>
